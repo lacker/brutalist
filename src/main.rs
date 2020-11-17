@@ -5,7 +5,7 @@ use std::io::prelude::*;
 
 fn tokenize(text: &str) -> Vec<&str> {
     lazy_static! {
-        static ref RE: Regex = Regex::new("([A-Za-z_]+|.)").unwrap();
+        static ref RE: Regex = Regex::new(r"([A-Za-z_]+|\S)").unwrap();
     }
     RE.find_iter(text).map(|m| m.as_str()).collect()
 }
@@ -15,6 +15,7 @@ fn main() -> std::io::Result<()> {
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     println!("contents are:\n {}", contents);
-    let _tokens = tokenize(&contents);
+    let tokens = tokenize(&contents);
+    println!("tokens are:\n {:?}", tokens);
     Ok(())
 }
