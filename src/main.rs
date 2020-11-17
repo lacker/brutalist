@@ -4,15 +4,34 @@ use std::fs::File;
 use std::io::prelude::*;
 
 #[derive(Debug)]
-struct Sexp<'a> {
-    token: String,
-    children: Vec<&'a Sexp<'a>>,
+struct Sexp {
+    token: Option<String>,
+    elements: Vec<Sexp>,
 }
 
-fn make_atom(text: &str) -> Sexp {
+fn make_atom(text: String) -> Sexp {
     Sexp {
-        token: text.to_string(),
-        children: Vec::new(),
+        token: Some(text),
+        elements: Vec::new(),
+    }
+}
+
+// Converts each pair of parentheses, as well as the overall expression, into a list-type
+// s-expression.
+// Panics with unmatched parentheses.
+fn deparenthesize(tokens: Vec<&str>) -> Sexp {
+    let mut answer: Vec<Sexp> = Vec::new();
+    for token in tokens {
+        if token != ")" {
+            answer.push(make_atom(token.to_string()));
+            continue;
+        }
+
+        panic!("XXX handle right paren");
+    }
+    Sexp {
+        token: None,
+        elements: answer,
     }
 }
 
@@ -31,7 +50,7 @@ fn main() -> std::io::Result<()> {
     let tokens = tokenize(&contents);
     println!("tokens are:\n {:?}", tokens);
 
-    println!("XXX {:?}", make_atom("foo"));
+    println!("XXX {:?}", make_atom("foo".to_string()));
 
     Ok(())
 }
