@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -27,7 +28,24 @@ fn deparenthesize(tokens: Vec<&str>) -> Sexp {
             continue;
         }
 
-        panic!("XXX handle right paren");
+        let mut elements = VecDeque::new();
+        loop {
+            let element = answer.pop().expect("extra right paren");
+
+            if element.token == Some("(".to_string()) {
+                answer.push(Sexp {
+                    token: None,
+                    elements: elements.into_iter().collect(),
+                });
+                break;
+            }
+            elements.push_front(element);
+        }
+    }
+    for element in &answer {
+        if element.token == Some("(".to_string()) {
+            panic!("extra left paren");
+        }
     }
     Sexp {
         token: None,
