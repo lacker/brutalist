@@ -1,10 +1,13 @@
+use lazy_static::lazy_static;
 use regex::Regex;
 use std::fs::File;
 use std::io::prelude::*;
 
 fn tokenize(text: &str) -> Vec<&str> {
-    let re = Regex::new("([A-Za-z_]+|.)").unwrap();
-    re.find_iter(text).map(|m| m.as_str()).collect()
+    lazy_static! {
+        static ref RE: Regex = Regex::new("([A-Za-z_]+|.)").unwrap();
+    }
+    RE.find_iter(text).map(|m| m.as_str()).collect()
 }
 
 fn main() -> std::io::Result<()> {
