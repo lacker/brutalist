@@ -5,15 +5,17 @@ use std::fs::File;
 use std::io::prelude::*;
 
 #[derive(Debug)]
-struct Sexp {
-    token: Option<String>,
-    elements: Vec<Sexp>,
+enum Sexp {
+    Atom(String),
+    List(Vec<Sexp>),
 }
 
-fn make_atom(text: String) -> Sexp {
-    Sexp {
-        token: Some(text),
-        elements: Vec::new(),
+impl Sexp {
+    fn eq_atom(&self, s1: &str) -> bool {
+        match self {
+            Sexp::Atom(s2) => s1 == s2,
+            Sexp::List(_) => false,
+        }
     }
 }
 
@@ -24,7 +26,7 @@ fn deparenthesize(tokens: Vec<&str>) -> Sexp {
     let mut answer: Vec<Sexp> = Vec::new();
     for token in tokens {
         if token != ")" {
-            answer.push(make_atom(token.to_string()));
+            answer.push(Sexp::Atom(token.to_string()));
             continue;
         }
 
@@ -32,25 +34,19 @@ fn deparenthesize(tokens: Vec<&str>) -> Sexp {
         loop {
             let element = answer.pop().expect("extra right paren");
 
-            if element.token == Some("(".to_string()) {
-                answer.push(Sexp {
-                    token: None,
-                    elements: elements.into_iter().collect(),
-                });
+            if element.eq_atom("(") {
+                answer.push(Sexp::List(elements.into_iter().collect()));
                 break;
             }
             elements.push_front(element);
         }
     }
     for element in &answer {
-        if element.token == Some("(".to_string()) {
+        if element.eq_atom("(") {
             panic!("extra left paren");
         }
     }
-    Sexp {
-        token: None,
-        elements: answer,
-    }
+    Sexp::List(answer)
 }
 
 fn tokenize(text: &str) -> Vec<&str> {
@@ -68,7 +64,8 @@ fn main() -> std::io::Result<()> {
     let tokens = tokenize(&contents);
     println!("tokens are:\n {:?}", tokens);
 
-    println!("XXX {:?}", make_atom("foo".to_string()));
+    let s = deparenthesize(tokens);
+    println!("sexp is: {:?}", s);
 
     Ok(())
 }
