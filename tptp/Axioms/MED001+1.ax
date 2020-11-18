@@ -1,0 +1,208 @@
+fof(normo,axiom,(
+    ! [X0] :
+      ( ! [X1] :
+          ( ~ gt(X0,X1)
+         => conditionnormo(X1) )
+     => ( ( ! [X1] :
+              ( conditionhyper(X1)
+             <= gt(X0,X1) )
+          & ! [X1] :
+              ( ~ gt(X0,X1)
+             => bsecretioni(X1) )
+          & ( ! [X1] :
+                ( ~ gt(X0,X1)
+               => uptakepg(X1) )
+            | ! [X1] :
+                ( ~ releaselg(X1)
+               <= ~ gt(X0,X1) ) )
+          & bcapacityne(X0) )
+        | ( ! [X1] :
+              ( ~ gt(X0,X1)
+             => bsecretioni(X1) )
+          & ! [X1] :
+              ( conditionhyper(X1)
+             <= gt(X0,X1) )
+          & bcapacitysn(X0)
+          & qilt27(X0) )
+        | ( ~ qilt27(X0)
+          & ! [X1] :
+              ( ~ releaselg(X1)
+             <= ~ gt(X0,X1) )
+          & bcapacitysn(X0)
+          & ! [X1] :
+              ( gt(X0,X1)
+             => conditionhyper(X1) ) )
+        | ( ! [X1] :
+              ( ~ gt(X0,X1)
+             => uptakelg(X1) )
+          & ! [X1] :
+              ( gt(X0,X1)
+             => conditionhyper(X1) )
+          & bcapacityex(X0)
+          & ! [X1] :
+              ( ~ gt(X0,X1)
+             => uptakepg(X1) ) ) ) ) )).
+
+fof(trans_ax1,axiom,(
+    ! [X0] :
+      ( ( ~ ! [X1] :
+              ( conditionnormo(X1)
+             <= ~ gt(X0,X1) )
+        & s0(X0) )
+     => ? [X1] :
+          ( ~ gt(X0,X1)
+          & ! [X2] :
+              ( conditionhyper(X2)
+             <= gt(X1,X2) )
+          & s1(X1) ) ) )).
+
+fof(step2,axiom,(
+    ! [X0] :
+      ( drugbg(X0)
+     <= ( s1(X0)
+        & ~ qilt27(X0) ) ) )).
+
+fof(insulincomp,axiom,(
+    ! [X0] :
+      ( drugi(X0)
+     => s3(X0) ) )).
+
+fof(xorstep1,axiom,(
+    ! [X0] :
+      ( s3(X0)
+      | s2(X0)
+      | s1(X0)
+      | s0(X0) ) )).
+
+fof(xorstep3,axiom,(
+    ! [X0] :
+      ( ~ s2(X0)
+      | ~ s0(X0) ) )).
+
+fof(sucomp,axiom,(
+    ! [X0] :
+      ( ( ( qillt27(X0)
+          & s1(X0) )
+        | s3(X0)
+        | s2(X0) )
+     <= drugsu(X0) ) )).
+
+fof(xorstep2,axiom,(
+    ! [X0] :
+      ( ~ s0(X0)
+      | ~ s1(X0) ) )).
+
+fof(xorstep6,axiom,(
+    ! [X0] :
+      ( ~ s1(X0)
+      | ~ s3(X0) ) )).
+
+fof(xorstep4,axiom,(
+    ! [X0] :
+      ( ~ s3(X0)
+      | ~ s0(X0) ) )).
+
+fof(insulin_completion,axiom,(
+    ! [X0] :
+      ( ! [X1] :
+          ( drugi(X1)
+         <= ~ gt(X0,X1) )
+     <= ( ! [X1] :
+            ( ~ gt(X0,X1)
+           => uptakelg(X1) )
+        | ! [X1] :
+            ( uptakepg(X1)
+           <= ~ gt(X0,X1) ) ) ) )).
+
+fof(step4,axiom,(
+    ! [X0] :
+      ( s3(X0)
+     => ( ( drugi(X0)
+          & ( drugbg(X0)
+            | drugsu(X0) ) )
+        | drugi(X0) ) ) )).
+
+fof(trans_ax3,axiom,(
+    ! [X0] :
+      ( ( ~ ! [X1] :
+              ( ~ gt(X0,X1)
+             => conditionnormo(X1) )
+        & s2(X0) )
+     => ? [X1] :
+          ( ~ gt(X0,X1)
+          & bcapacityex(X1)
+          & ! [X2] :
+              ( gt(X1,X2)
+             => conditionhyper(X2) )
+          & s3(X1) ) ) )).
+
+fof(step3,axiom,(
+    ! [X0] :
+      ( ( drugsu(X0)
+        & drugbg(X0) )
+     <= s2(X0) ) )).
+
+fof(bgcomp,axiom,(
+    ! [X0] :
+      ( drugbg(X0)
+     => ( s3(X0)
+        | s2(X0)
+        | ( s1(X0)
+          & ~ qilt27(X0) ) ) ) )).
+
+fof(xorstep5,axiom,(
+    ! [X0] :
+      ( ~ s2(X0)
+      | ~ s1(X0) ) )).
+
+fof(bg_completion,axiom,(
+    ! [X0] :
+      ( ! [X1] :
+          ( ~ releaselg(X1)
+         <= ~ gt(X0,X1) )
+     => ! [X1] :
+          ( drugbg(X1)
+         <= ~ gt(X0,X1) ) ) )).
+
+fof(step1,axiom,(
+    ! [X0] :
+      ( drugsu(X0)
+     <= ( qilt27(X0)
+        & s1(X0) ) ) )).
+
+fof(xorstep7,axiom,(
+    ! [X0] :
+      ( ~ s3(X0)
+      | ~ s2(X0) ) )).
+
+fof(trans_ax2,axiom,(
+    ! [X0] :
+      ( ? [X1] :
+          ( ~ gt(X0,X1)
+          & ( bcapacityex(X1)
+            | bcapacityne(X1) )
+          & ! [X2] :
+              ( conditionhyper(X2)
+             <= gt(X1,X2) )
+          & s2(X1) )
+     <= ( s1(X0)
+        & ~ ! [X1] :
+              ( ~ gt(X0,X1)
+             => conditionnormo(X1) ) ) ) )).
+
+fof(su_completion,axiom,(
+    ! [X0] :
+      ( ! [X1] :
+          ( ~ gt(X0,X1)
+         => bsecretioni(X1) )
+     => ( ! [X1] :
+            ( ~ gt(X0,X1)
+           => drugsu(X1) )
+        & ~ bcapacityex(X0) ) ) )).
+
+fof(uptake_completion,axiom,(
+    ! [X0,X1] :
+      ( ~ gt(X0,X1)
+     => ( ~ releaselg(X1)
+       => uptakelg(X1) ) ) )).
+

@@ -1,0 +1,9 @@
+fof(hyp2,axiom,(
+    ! [Y,X,Z,Z1] :
+      ( ( r(Z,X,Z1)
+       => r(Y,succ(X),Z1) )
+     <= r(Y,X,Z) ) )).
+
+fof(hyp1,axiom,(
+    ! [Y] : r(Y,zero,succ(Y)) )).
+

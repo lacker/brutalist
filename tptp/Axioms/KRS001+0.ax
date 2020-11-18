@@ -1,0 +1,139 @@
+fof(wec,axiom,(
+    ! [Ax,C] :
+      ( ( ? [I3] :
+            ( ~ model(I3,Ax)
+            & model(I3,C) )
+        & ? [I1] : model(I1,Ax)
+        & ! [I2] :
+            ( model(I2,Ax)
+           => model(I2,C) ) )
+    <=> status(Ax,C,wec) ) )).
+
+fof(wtc,axiom,(
+    ! [Ax,C] :
+      ( status(Ax,C,wtc)
+    <=> ( ? [I1] : model(I1,Ax)
+        & ? [I2] : ~ model(I2,Ax)
+        & ! [I3] : model(I3,C) ) ) )).
+
+fof(tac,axiom,(
+    ! [Ax,C] :
+      ( ( ! [I2] : model(I2,C)
+        & ? [I1] : model(I1,Ax) )
+    <=> status(Ax,C,tac) ) )).
+
+fof(sca,axiom,(
+    ! [Ax,C] :
+      ( status(Ax,C,sca)
+    <=> ( ? [I2] : model(I2,C)
+        & ~ ? [I1] : model(I1,Ax) ) ) )).
+
+fof(eqv,axiom,(
+    ! [Ax,C] :
+      ( ( ? [I1] : model(I1,Ax)
+        & ! [I2] :
+            ( model(I2,Ax)
+          <=> model(I2,C) ) )
+    <=> status(Ax,C,eqv) ) )).
+
+fof(thm,axiom,(
+    ! [Ax,C] :
+      ( status(Ax,C,thm)
+    <=> ! [I1] :
+          ( model(I1,C)
+         <= model(I1,Ax) ) ) )).
+
+fof(wth,axiom,(
+    ! [Ax,C] :
+      ( status(Ax,C,wth)
+    <=> ( ? [I1] : model(I1,Ax)
+        & ? [I4] : ~ model(I4,C)
+        & ? [I3] :
+            ( model(I3,C)
+            & ~ model(I3,Ax) )
+        & ! [I2] :
+            ( model(I2,C)
+           <= model(I2,Ax) ) ) ) )).
+
+fof(cax,axiom,(
+    ! [Ax,C] :
+      ( status(Ax,C,cax)
+    <=> ~ ? [I1] : model(I1,Ax) ) )).
+
+fof(uns,axiom,(
+    ! [Ax,C] :
+      ( ( ! [I1] : model(I1,Ax)
+        & ! [I2] : model(I2,not(C)) )
+    <=> status(Ax,C,uns) ) )).
+
+fof(wca,axiom,(
+    ! [Ax,C] :
+      ( ( ? [I2] : model(I2,C)
+        & ? [I3] : ~ model(I3,C)
+        & ~ ? [I1] : model(I1,Ax) )
+    <=> status(Ax,C,wca) ) )).
+
+fof(eth,axiom,(
+    ! [Ax,C] :
+      ( status(Ax,C,eth)
+    <=> ( ! [I3] :
+            ( model(I3,Ax)
+          <=> model(I3,C) )
+        & ? [I1] : model(I1,Ax)
+        & ? [I2] : ~ model(I2,Ax) ) ) )).
+
+fof(noc,axiom,(
+    ! [Ax,C] :
+      ( ( ? [I1] :
+            ( model(I1,Ax)
+            & model(I1,C) )
+        & ? [I2] :
+            ( model(I2,Ax)
+            & model(I2,not(C)) ) )
+    <=> status(Ax,C,noc) ) )).
+
+fof(csa,axiom,(
+    ! [Ax,C] :
+      ( ? [I1] :
+          ( model(I1,not(C))
+          & model(I1,Ax) )
+    <=> status(Ax,C,csa) ) )).
+
+fof(unp,axiom,(
+    ! [Ax,C] :
+      ( ( ~ ? [I2] : model(I2,C)
+       <= ~ ? [I1] : model(I1,Ax) )
+    <=> status(Ax,C,unp) ) )).
+
+fof(tca,axiom,(
+    ! [Ax,C] :
+      ( status(Ax,C,tca)
+    <=> ( ! [I2] : model(I2,C)
+        & ~ ? [I1] : model(I1,Ax) ) ) )).
+
+fof(sap,axiom,(
+    ! [Ax,C] :
+      ( ( ? [I1] : model(I1,Ax)
+       => ? [I2] : model(I2,C) )
+    <=> status(Ax,C,sap) ) )).
+
+fof(esa,axiom,(
+    ! [Ax,C] :
+      ( status(Ax,C,esa)
+    <=> ( ? [I1] : model(I1,Ax)
+      <=> ? [I2] : model(I2,C) ) ) )).
+
+fof(tau,axiom,(
+    ! [Ax,C] :
+      ( ! [I1] :
+          ( model(I1,C)
+          & model(I1,Ax) )
+    <=> status(Ax,C,tau) ) )).
+
+fof(sat,axiom,(
+    ! [Ax,C] :
+      ( ? [I1] :
+          ( model(I1,C)
+          & model(I1,Ax) )
+    <=> status(Ax,C,sat) ) )).
+

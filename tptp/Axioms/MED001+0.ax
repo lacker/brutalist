@@ -1,0 +1,150 @@
+fof(xorcondition2,axiom,(
+    ! [X0] :
+      ( ~ conditionhypo(X0)
+      | ~ conditionhyper(X0) ) )).
+
+fof(xorcapacity4,axiom,(
+    ! [X0] :
+      ( ~ bcapacitysn(X0)
+      | ~ bcapacityex(X0) ) )).
+
+fof(biguanide_effect,axiom,(
+    ! [X0] :
+      ( ! [X1] :
+          ( drugbg(X1)
+         <= ~ gt(X0,X1) )
+     => ! [X1] :
+          ( ~ gt(X0,X1)
+         => ~ releaselg(X1) ) ) )).
+
+fof(sn_cure_1,axiom,(
+    ! [X0] :
+      ( ( bcapacitysn(X0)
+        & ! [X1] :
+            ( ~ gt(X0,X1)
+           => bsecretioni(X1) )
+        & qilt27(X0)
+        & ! [X1] :
+            ( conditionhyper(X1)
+           <= gt(X0,X1) ) )
+     => ! [X1] :
+          ( ~ gt(X0,X1)
+         => conditionnormo(X1) ) ) )).
+
+fof(ne_cure,axiom,(
+    ! [X0] :
+      ( ( ( ! [X1] :
+              ( ~ gt(X0,X1)
+             => uptakepg(X1) )
+          | ! [X1] :
+              ( ~ gt(X0,X1)
+             => ~ releaselg(X1) ) )
+        & bcapacityne(X0)
+        & ! [X1] :
+            ( conditionhyper(X1)
+           <= gt(X0,X1) )
+        & ! [X1] :
+            ( ~ gt(X0,X1)
+           => bsecretioni(X1) ) )
+     => ! [X1] :
+          ( ~ gt(X0,X1)
+         => conditionnormo(X1) ) ) )).
+
+fof(irreflexivity_gt,axiom,(
+    ! [X] : ~ gt(X,X) )).
+
+fof(xorcondition4,axiom,(
+    ! [X0] :
+      ( ~ conditionnormo(X0)
+      | ~ conditionhypo(X0) ) )).
+
+fof(transitivity_gt,axiom,(
+    ! [X,Y,Z] :
+      ( gt(X,Z)
+     <= ( gt(X,Y)
+        & gt(Y,Z) ) ) )).
+
+fof(xorcondition3,axiom,(
+    ! [X0] :
+      ( ~ conditionhyper(X0)
+      | ~ conditionnormo(X0) ) )).
+
+fof(xorcapacity3,axiom,(
+    ! [X0] :
+      ( ~ bcapacityne(X0)
+      | ~ bcapacitysn(X0) ) )).
+
+fof(sulfonylurea_effect,axiom,(
+    ! [X0] :
+      ( ( ~ bcapacityex(X0)
+        & ! [X1] :
+            ( drugsu(X1)
+           <= ~ gt(X0,X1) ) )
+     => ! [X1] :
+          ( ~ gt(X0,X1)
+         => bsecretioni(X1) ) ) )).
+
+fof(xorcapacity1,axiom,(
+    ! [X0] :
+      ( bcapacityex(X0)
+      | bcapacityne(X0)
+      | bcapacitysn(X0) ) )).
+
+fof(xorcapacity2,axiom,(
+    ! [X0] :
+      ( ~ bcapacityex(X0)
+      | ~ bcapacityne(X0) ) )).
+
+fof(xorcondition1,axiom,(
+    ! [X0] :
+      ( conditionnormo(X0)
+      | conditionhyper(X0)
+      | conditionhypo(X0) ) )).
+
+fof(liver_glucose,axiom,(
+    ! [X0,X1] :
+      ( ~ gt(X0,X1)
+     => ( ~ releaselg(X1)
+       <= uptakelg(X1) ) ) )).
+
+fof(sn_cure_2,axiom,(
+    ! [X0] :
+      ( ( ! [X1] :
+            ( gt(X0,X1)
+           => conditionhyper(X1) )
+        & bcapacitysn(X0)
+        & ~ qilt27(X0)
+        & ! [X1] :
+            ( ~ gt(X0,X1)
+           => ~ releaselg(X1) ) )
+     => ! [X1] :
+          ( ~ gt(X0,X1)
+         => conditionnormo(X1) ) ) )).
+
+fof(ex_cure,axiom,(
+    ! [X0] :
+      ( ! [X1] :
+          ( ( conditionhypo(X1)
+            | conditionnormo(X1) )
+         <= ~ gt(X0,X1) )
+     <= ( bcapacityex(X0)
+        & ! [X1] :
+            ( ~ gt(X0,X1)
+           => uptakelg(X1) )
+        & ! [X1] :
+            ( ~ gt(X0,X1)
+           => uptakepg(X1) )
+        & ! [X1] :
+            ( gt(X0,X1)
+           => conditionhyper(X1) ) ) ) )).
+
+fof(insulin_effect,axiom,(
+    ! [X0] :
+      ( ! [X1] :
+          ( ( uptakepg(X1)
+            & uptakelg(X1) )
+         <= ~ gt(X0,X1) )
+     <= ! [X1] :
+          ( ~ gt(X0,X1)
+         => drugi(X1) ) ) )).
+

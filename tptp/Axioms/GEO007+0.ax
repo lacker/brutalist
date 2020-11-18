@@ -1,0 +1,188 @@
+fof(oagco2,axiom,(
+    ! [L,M] :
+      ( point(intersection_point(L,M))
+     <= ( line(L)
+        & unequally_directed_lines(L,M)
+        & unequally_directed_lines(L,reverse_line(M))
+        & line(M) ) ) )).
+
+fof(oagsub2,axiom,(
+    ! [A,L,M] :
+      ( ( unequally_directed_lines(L,M)
+        & left_apart_point(A,L) )
+     => ( left_apart_point(A,reverse_line(M))
+        | distinct_lines(L,M) ) ) )).
+
+fof(oag11,axiom,(
+    ! [L,M] :
+      ~ ( left_convergent_lines(L,reverse_line(M))
+        | left_convergent_lines(L,M) ) )).
+
+fof(apt_def,axiom,(
+    ! [A,L] :
+      ( ( left_apart_point(A,reverse_line(L))
+        | left_apart_point(A,L) )
+    <=> apart_point_and_line(A,L) ) )).
+
+fof(oag4,axiom,(
+    ! [L,M,N] :
+      ( ( distinct_lines(L,N)
+        | distinct_lines(M,N) )
+     <= distinct_lines(L,M) ) )).
+
+fof(bet_def,axiom,(
+    ! [L,A,B,C] :
+      ( between_on_line(L,A,B,C)
+    <=> ( ( before_on_line(L,B,C)
+          & before_on_line(L,A,B) )
+        | ( before_on_line(L,C,B)
+          & before_on_line(L,B,A) ) ) ) )).
+
+fof(oag3,axiom,(
+    ! [L] : ~ distinct_lines(L,L) )).
+
+fof(oagco8,axiom,(
+    ! [L] : ~ distinct_lines(L,reverse_line(L)) )).
+
+fof(oaguc2,axiom,(
+    ! [A,B,L] :
+      ( ( left_convergent_lines(line_connecting(A,B),L)
+        | left_apart_point(B,L) )
+     <= ( left_apart_point(A,L)
+        & distinct_points(A,B) ) ) )).
+
+fof(oagco4,axiom,(
+    ! [L] :
+      ( line(reverse_line(L))
+     <= line(L) ) )).
+
+fof(oag8,axiom,(
+    ! [L,M] :
+      ( ( unequally_directed_lines(L,reverse_line(M))
+        | unequally_directed_lines(L,M) )
+     <= ( line(M)
+        & line(L) ) ) )).
+
+fof(oag6,axiom,(
+    ! [L,M,N] :
+      ( unequally_directed_lines(L,M)
+     => ( unequally_directed_lines(L,N)
+        | unequally_directed_lines(M,N) ) ) )).
+
+fof(oag9,axiom,(
+    ! [L,M] :
+      ( ( left_convergent_lines(L,reverse_line(M))
+        | left_convergent_lines(L,M) )
+     <= ( unequally_directed_lines(L,M)
+        & unequally_directed_lines(L,reverse_line(M)) ) ) )).
+
+fof(oag2,axiom,(
+    ! [A,B,C] :
+      ( distinct_points(A,B)
+     => ( distinct_points(A,C)
+        | distinct_points(B,C) ) ) )).
+
+fof(oagco5,axiom,(
+    ! [A,B] :
+      ( distinct_points(A,B)
+     => ( ~ apart_point_and_line(A,line_connecting(A,B))
+        & ~ apart_point_and_line(B,line_connecting(A,B)) ) ) )).
+
+fof(oag5,axiom,(
+    ! [L] : ~ unequally_directed_lines(L,L) )).
+
+fof(oagco6,axiom,(
+    ! [L,M] :
+      ( ( unequally_directed_lines(L,reverse_line(M))
+        & unequally_directed_lines(L,M) )
+     => ( ~ apart_point_and_line(intersection_point(L,M),M)
+        & ~ apart_point_and_line(intersection_point(L,M),L) ) ) )).
+
+fof(oag10,axiom,(
+    ! [A,L] :
+      ~ ( left_apart_point(A,reverse_line(L))
+        | left_apart_point(A,L) ) )).
+
+fof(oag7,axiom,(
+    ! [L,M,N] :
+      ( ( ( unequally_directed_lines(M,reverse_line(N))
+          & unequally_directed_lines(M,N) )
+        | ( unequally_directed_lines(L,N)
+          & unequally_directed_lines(L,reverse_line(N)) ) )
+     <= ( unequally_directed_lines(L,reverse_line(M))
+        & unequally_directed_lines(L,M) ) ) )).
+
+fof(con_def,axiom,(
+    ! [L,M] :
+      ( convergent_lines(L,M)
+    <=> ( unequally_directed_lines(L,reverse_line(M))
+        & unequally_directed_lines(L,M) ) ) )).
+
+fof(oagco1,axiom,(
+    ! [A,B] :
+      ( ( point(B)
+        & distinct_points(A,B)
+        & point(A) )
+     => line(line_connecting(A,B)) ) )).
+
+fof(oagco9,axiom,(
+    ! [A,B] : ~ unequally_directed_lines(line_connecting(A,B),reverse_line(line_connecting(B,A))) )).
+
+fof(oag1,axiom,(
+    ! [A] : ~ distinct_points(A,A) )).
+
+fof(div_def,axiom,(
+    ! [A,B,L] :
+      ( ( ( left_apart_point(B,reverse_line(L))
+          & left_apart_point(A,L) )
+        | ( left_apart_point(A,reverse_line(L))
+          & left_apart_point(B,L) ) )
+    <=> divides_points(L,A,B) ) )).
+
+fof(bf_def,axiom,(
+    ! [L,A,B] :
+      ( before_on_line(L,A,B)
+    <=> ( ~ ( left_apart_point(A,L)
+            | left_apart_point(A,reverse_line(L)) )
+        & ~ ( left_apart_point(B,L)
+            | left_apart_point(B,reverse_line(L)) )
+        & ~ unequally_directed_lines(L,line_connecting(A,B))
+        & distinct_points(A,B) ) ) )).
+
+fof(oagsub1,axiom,(
+    ! [A,B,L] :
+      ( ( distinct_points(A,B)
+        | left_apart_point(B,L) )
+     <= left_apart_point(A,L) ) )).
+
+fof(oagsub3,axiom,(
+    ! [L,M,N] :
+      ( left_convergent_lines(L,M)
+     => ( left_convergent_lines(L,N)
+        | unequally_directed_lines(M,N) ) ) )).
+
+fof(oagco10,axiom,(
+    ! [A,L] : ~ unequally_directed_lines(parallel_through_point(L,A),L) )).
+
+fof(oaguc1,axiom,(
+    ! [A,B,L,M] :
+      ( ( left_apart_point(B,L)
+        | left_apart_point(B,reverse_line(L))
+        | left_apart_point(A,reverse_line(L))
+        | left_apart_point(B,M)
+        | left_apart_point(A,L)
+        | left_apart_point(B,reverse_line(M))
+        | left_apart_point(A,reverse_line(M))
+        | left_apart_point(A,M) )
+     <= ( distinct_points(A,B)
+        & distinct_lines(L,M) ) ) )).
+
+fof(oagco7,axiom,(
+    ! [A,L] : ~ apart_point_and_line(A,parallel_through_point(L,A)) )).
+
+fof(oagco3,axiom,(
+    ! [L,A] :
+      ( ( point(A)
+        & line(L) )
+     => line(parallel_through_point(L,A)) ) )).
+

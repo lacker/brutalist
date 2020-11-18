@@ -1,0 +1,84 @@
+fof(contradiction,axiom,(
+    ? [F] :
+    ! [I] : ~ model(I,F) )).
+
+fof(non_thm_spt,axiom,(
+    ? [I1,Ax,C] :
+      ( model(I1,Ax)
+      & ? [I2] : model(I2,C)
+      & ~ model(I1,C) ) )).
+
+fof(isa,axiom,(
+    ! [S1,S2] :
+      ( ! [Ax,C] :
+          ( status(Ax,C,S2)
+         <= status(Ax,C,S1) )
+    <=> isa(S1,S2) ) )).
+
+fof(nevera,axiom,(
+    ! [S1,S2] :
+      ( nevera(S1,S2)
+    <=> ! [Ax,C] :
+          ( status(Ax,C,S1)
+         => ~ status(Ax,C,S2) ) ) )).
+
+fof(satisfiable,axiom,(
+    ? [F] :
+      ( ? [I1] : model(I1,F)
+      & ? [I2] : ~ model(I2,F) ) )).
+
+fof(mighta,axiom,(
+    ! [S1,S2] :
+      ( ? [Ax,C] :
+          ( status(Ax,C,S1)
+          & status(Ax,C,S2) )
+    <=> mighta(S1,S2) ) )).
+
+fof(xora,axiom,(
+    ! [S1,S2] :
+      ( ! [Ax,C] :
+          ( status(Ax,C,S2)
+        <~> status(Ax,C,S1) )
+    <=> xora(S1,S2) ) )).
+
+fof(tautology,axiom,(
+    ? [F] :
+    ! [I] : model(I,F) )).
+
+fof(nota,axiom,(
+    ! [S1,S2] :
+      ( ? [Ax,C] :
+          ( status(Ax,C,S1)
+          & ~ status(Ax,C,S2) )
+    <=> nota(S1,S2) ) )).
+
+fof(mixed_pair,axiom,(
+    ? [Ax,C] :
+      ( ? [I4] : ~ model(I4,C)
+      & ? [I3] :
+          ( model(I3,C)
+          & ~ model(I3,Ax) )
+      & ! [I2] :
+          ( model(I2,C)
+         <= model(I2,Ax) )
+      & ? [I1] : model(I1,Ax) ) )).
+
+fof(completeness,axiom,(
+    ! [I,F] :
+      ( model(I,F)
+    <~> model(I,not(F)) ) )).
+
+fof(not,axiom,(
+    ! [I,F] :
+      ( ~ model(I,not(F))
+    <=> model(I,F) ) )).
+
+fof(sat_non_taut_pair,axiom,(
+    ? [Ax,C] :
+      ( ? [I2] :
+          ( ~ model(I2,C)
+          | ~ model(I2,Ax) )
+      & ? [I1] :
+          ( model(I1,C)
+          & model(I1,Ax) ) ) )).
+
