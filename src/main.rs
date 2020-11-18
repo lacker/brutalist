@@ -17,6 +17,16 @@ impl Sexp {
             Sexp::List(_) => false,
         }
     }
+
+    fn is_alpha(&self) -> bool {
+        match self {
+            Sexp::Atom(s) => match s.chars().next() {
+                None => false,
+                Some(ch) => ch.is_alphabetic(),
+            },
+            Sexp::List(_) => false,
+        }
+    }
 }
 
 impl fmt::Display for Sexp {
@@ -32,13 +42,45 @@ impl fmt::Display for Sexp {
     }
 }
 
+// Each list with commas in it gets combined without commas. Lists also gets combined with
+// the previous item, assuming the previous item is a function being called on this list,
+// unless the previous item is punctuation.
+fn decomma(input: Sexp) -> Sexp {
+    match input {
+        Sexp::Atom(_) => input,
+        Sexp::List(subexps) => {
+            // First combine arguments with their functions
+            let mut accum: Vec<Sexp> = Vec::new();
+            for subexp in subexps {
+                let exp = decomma(subexp);
+                if let Some(f) = accum.last() {
+                    if f.is_alpha() {
+                        if let Sexp::List(args) = exp {
+                            // Combine arguments with function
+                            let mut elements: Vec<Sexp> = Vec::new();
+                            elements.push(accum.pop().unwrap());
+                            elements.extend(args.into_iter());
+                            accum.push(Sexp::List(elements));
+                            continue;
+                        }
+                    }
+                }
+                accum.push(exp);
+            }
+
+            // Now get rid of any commas
+            Sexp::List(accum.into_iter().filter(|s| !s.eq_atom(",")).collect())
+        }
+    }
+}
+
 // Converts each pair of parentheses, as well as the overall expression, into a list-type
 // s-expression.
 // Panics with unmatched parentheses.
 fn deparenthesize(tokens: Vec<&str>) -> Sexp {
     let mut answer: Vec<Sexp> = Vec::new();
     for token in tokens {
-        if token != ")" {
+        if token != ")" && token != "]" {
             answer.push(Sexp::Atom(token.to_string()));
             continue;
         }
@@ -47,7 +89,7 @@ fn deparenthesize(tokens: Vec<&str>) -> Sexp {
         loop {
             let element = answer.pop().expect("extra right paren");
 
-            if element.eq_atom("(") {
+            if element.eq_atom("(") || element.eq_atom("[") {
                 answer.push(Sexp::List(elements.into_iter().collect()));
                 break;
             }
@@ -55,7 +97,7 @@ fn deparenthesize(tokens: Vec<&str>) -> Sexp {
         }
     }
     for element in &answer {
-        if element.eq_atom("(") {
+        if element.eq_atom("(") || element.eq_atom("[") {
             panic!("extra left paren");
         }
     }
@@ -64,9 +106,32 @@ fn deparenthesize(tokens: Vec<&str>) -> Sexp {
 
 fn tokenize(text: &str) -> Vec<&str> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"([A-Za-z_]+|<=|\S)").unwrap();
+        static ref RE: Regex = Regex::new(r"([A-Za-z_]+|<=>|<=|=>|\S)").unwrap();
     }
     RE.find_iter(text).map(|m| m.as_str()).collect()
+}
+
+enum Term {
+    Constant(String),
+    Variable(String),
+    Function(String, Vec<Term>),
+}
+
+enum Formula {
+    Atomic(Term),
+    And(Box<Formula>, Box<Formula>),
+    Or(Box<Formula>, Box<Formula>),
+    Not(Box<Formula>),
+    Implies(Box<Formula>, Box<Formula>),
+    Iff(Box<Formula>, Box<Formula>),
+    ForAll(String, Box<Formula>),
+    Exists(String, Box<Formula>),
+}
+
+struct Entry {
+    name: String,
+    is_axiom: bool,
+    formula: Formula,
 }
 
 fn main() -> std::io::Result<()> {
@@ -79,6 +144,9 @@ fn main() -> std::io::Result<()> {
 
     let s = deparenthesize(tokens);
     println!("sexp is: {}", s);
+
+    let d = decomma(s);
+    println!("decommaed is: {}", d);
 
     Ok(())
 }
