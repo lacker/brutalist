@@ -241,9 +241,15 @@ fn make_term(input: &Sexp) -> Term {
         }
         Sexp::List(elements) => {
             if let Sexp::Atom(fname) = &elements[0] {
+                if !fname.chars().next().unwrap().is_ascii_lowercase() {
+                    panic!("function names must be constants");
+                }
                 let mut terms = Vec::new();
                 for element in &elements[1..] {
                     terms.push(make_term(element));
+                }
+                if terms.is_empty() {
+                    return Term::Constant(fname.to_string());
                 }
                 return Term::Function(fname.to_string(), terms);
             } else {
@@ -391,7 +397,7 @@ fn load_tptp(fname: &str) -> Vec<Entry> {
 }
 
 fn main() -> () {
-    let fnames = ["BOO109+1.p", "COM008+1.p"];
+    let fnames = ["BOO109+1.p", "COM008+1.p", "CSR027+2.p"];
     for fname in &fnames {
         let fne = format!("FNE/{}", fname);
         let entries = load_tptp(&fne);
