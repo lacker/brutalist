@@ -162,6 +162,65 @@ fn deoperate(input: Sexp) -> Sexp {
         }
     }
 }
+// Term/Formula/Entry are specific to first-order logic.
+enum Term {
+    Constant(String),
+    Variable(String),
+    Function(String, Vec<Term>),
+}
+
+impl fmt::Display for Term {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Term::Constant(s) => write!(f, "{}", s),
+            Term::Variable(s) => write!(f, "{}", s),
+            Term::Function(s, v) => {
+                let terms = v.iter().map(|s| s.to_string());
+                let joined = terms.collect::<Vec<_>>().join(", ");
+                write!(f, "{}({})", s, joined)
+            }
+        }
+    }
+}
+
+enum Formula {
+    Atomic(Term),
+    And(Box<Formula>, Box<Formula>),
+    Or(Box<Formula>, Box<Formula>),
+    Not(Box<Formula>),
+    Implies(Box<Formula>, Box<Formula>),
+    Iff(Box<Formula>, Box<Formula>),
+    ForAll(String, Box<Formula>),
+    Exists(String, Box<Formula>),
+}
+
+impl fmt::Display for Formula {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Formula::Atomic(t) => write!(f, "{}", t),
+            Formula::And(left, right) => write!(f, "({} & {})", left, right),
+            _ => write!(f, "XXX"),
+        }
+    }
+}
+
+struct Entry {
+    name: String,
+    is_axiom: bool,
+    formula: Formula,
+}
+
+impl fmt::Display for Entry {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} ({}): {}",
+            self.name,
+            if self.is_axiom { "axiom" } else { "conjecture" },
+            self.formula
+        )
+    }
+}
 
 fn make_term(input: &Sexp) -> Term {
     match input {
@@ -245,42 +304,12 @@ fn make_formula(input: &Sexp) -> Formula {
     }
 }
 
-// Term/Formula/Entry are specific to first-order logic.
-enum Term {
-    Constant(String),
-    Variable(String),
-    Function(String, Vec<Term>),
-}
+fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {}
 
-impl fmt::Display for Term {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Term::Constant(s) => write!(f, "{}", s),
-            Term::Variable(s) => write!(f, "{}", s),
-            Term::Function(s, v) => {
-                let terms = v.iter().map(|s| s.to_string());
-                let joined = terms.collect::<Vec<_>>().join(", ");
-                write!(f, "{}({})", s, joined)
-            }
-        }
-    }
-}
-
-enum Formula {
-    Atomic(Term),
-    And(Box<Formula>, Box<Formula>),
-    Or(Box<Formula>, Box<Formula>),
-    Not(Box<Formula>),
-    Implies(Box<Formula>, Box<Formula>),
-    Iff(Box<Formula>, Box<Formula>),
-    ForAll(String, Box<Formula>),
-    Exists(String, Box<Formula>),
-}
-
-struct Entry {
-    name: String,
-    is_axiom: bool,
-    formula: Formula,
+fn make_entries(input: &Sexp) -> Vec<Entry> {
+    let mut answer = Vec::new();
+    push_entries(input, &mut answer);
+    answer
 }
 
 fn main() -> std::io::Result<()> {
@@ -299,6 +328,12 @@ fn main() -> std::io::Result<()> {
 
     let deo = deoperate(dec);
     println!("deoperated is: {}", deo);
+
+    let entries = make_entries(&deo);
+    println!("entries:");
+    for entry in entries {
+        println!("{}", entry);
+    }
 
     Ok(())
 }
