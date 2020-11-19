@@ -52,7 +52,8 @@ impl fmt::Display for Sexp {
 
 fn tokenize(text: &str) -> Vec<&str> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"([A-Za-z_]+|<=>|<=|=>|\S)").unwrap();
+        static ref RE: Regex =
+            Regex::new(r"([[:alpha:]][[:word:]]*|'[^']*'|<=>|<=|=>|\S)").unwrap();
     }
     RE.find_iter(text).map(|m| m.as_str()).collect()
 }
@@ -130,11 +131,22 @@ fn maybe_flatten(input: Vec<Sexp>) -> Sexp {
     return Sexp::List(input);
 }
 
-// Turn infix operators and prefix operators into s-expressions
+// Turn infix operators and prefix operators into s-expressions.
+// If flatten is set, this also turns one-element lists into single
+// elements, to eliminate extra parentheses.
 fn deoperate(input: Sexp) -> Sexp {
     match input {
         Sexp::Atom(_) => input,
         Sexp::List(mut subexps) => {
+            if subexps.len() == 0 {
+                panic!("deoperate should not hit empty lists");
+            }
+
+            if subexps.len() == 1 {
+                // Flatten
+                return deoperate(subexps.into_iter().next().unwrap());
+            }
+
             for (i, element) in subexps.iter().enumerate() {
                 if element.eq_atom("&")
                     || element.eq_atom("|")
@@ -336,6 +348,23 @@ fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {
                     }
                     Sexp::List(items) => {
                         // Format is:
+                        // include 'fname'
+                        if items.len() == 2 {
+                            if !items[0].eq_atom("include") {
+                                panic!("unrecognized size-2 element: {}", element);
+                            }
+                            if let Sexp::Atom(quoted) = &items[1] {
+                                let fname =
+                                    quoted.strip_prefix("'").unwrap().strip_suffix("'").unwrap();
+                                println!("including {}...", fname);
+                                load_entries(fname, entries);
+                                continue;
+                            } else {
+                                panic!("could not find filename in: {}", element);
+                            }
+                        }
+
+                        // Format is:
                         // fof <name> axiom|conjecture <formula>
                         if items.len() != 4 {
                             panic!("unrecognized fof format: {}", element);
@@ -367,14 +396,8 @@ fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {
     }
 }
 
-fn make_entries(input: &Sexp) -> Vec<Entry> {
-    let mut answer = Vec::new();
-    push_entries(input, &mut answer);
-    answer
-}
-
 // Filename is relative to the tptp directory.
-fn load_tptp(fname: &str) -> Vec<Entry> {
+fn load_entries(fname: &str, entries: &mut Vec<Entry>) {
     let full = format!("tptp/{}", fname);
     let mut file = File::open(full).unwrap();
     let mut contents = String::new();
@@ -393,16 +416,23 @@ fn load_tptp(fname: &str) -> Vec<Entry> {
     let deo = deoperate(dec);
     // println!("deoperated is: {}", deo);
 
-    make_entries(&deo)
+    push_entries(&deo, entries)
+}
+
+// Load a file from the FNE directory
+fn load_fne(fname: &str) -> Vec<Entry> {
+    let mut answer = Vec::new();
+    let fne = format!("FNE/{}", fname);
+    load_entries(&fne, &mut answer);
+    answer
 }
 
 fn main() -> () {
     let fnames = ["BOO109+1.p", "COM008+1.p", "CSR027+2.p"];
     for fname in &fnames {
-        let fne = format!("FNE/{}", fname);
-        let entries = load_tptp(&fne);
-
-        println!("\nentries for {}:", fname);
+        println!();
+        let entries = load_fne(fname);
+        println!("entries for {}:", fname);
         for entry in entries {
             println!("{}", entry);
         }
