@@ -261,7 +261,7 @@ fn make_formula(input: &Sexp) -> Formula {
             if elements.len() == 4 && elements[2].eq_atom(":") {
                 let mut answer = make_formula(&elements[3]);
                 let is_exists = elements[0].eq_atom("?");
-                if !elements[0].eq_atom("!") {
+                if !is_exists && !elements[0].eq_atom("!") {
                     panic!("bad elements[0] in: {}", input);
                 }
                 if let Sexp::List(vars) = &elements[1] {
