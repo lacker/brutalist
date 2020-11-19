@@ -286,8 +286,16 @@ fn make_formula(input: &Sexp) -> Formula {
             }
 
             // Handle function "atoms"
-            if let Sexp::Atom(_) = elements[0] {
+            if elements[0].is_alpha() {
                 return Formula::Atomic(make_term(input));
+            }
+
+            // Handle "not"
+            if elements.len() == 2 {
+                if !elements[0].eq_atom("~") {
+                    panic!("the only unary operator is not");
+                }
+                return Formula::Not(Box::new(make_formula(&elements[1])));
             }
 
             // Everything left should be binary operators
@@ -309,7 +317,49 @@ fn make_formula(input: &Sexp) -> Formula {
     }
 }
 
-fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {}
+fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {
+    match input {
+        Sexp::Atom(_) => panic!("cannot make entries from an atom"),
+        Sexp::List(elements) => {
+            for element in elements {
+                match element {
+                    Sexp::Atom(s) => {
+                        if s != "." {
+                            panic!("unexpected top-level atom: {}", s);
+                        }
+                    }
+                    Sexp::List(items) => {
+                        // Format is:
+                        // fof <name> axiom|conjecture <formula>
+                        if items.len() != 4 {
+                            panic!("unrecognized fof format: {}", element);
+                        }
+
+                        if !items[0].eq_atom("fof") {
+                            panic!("expected first token to be 'fof' in: {}", element);
+                        }
+
+                        let is_axiom = items[2].eq_atom("axiom");
+                        if !is_axiom && !items[2].eq_atom("conjecture") {
+                            panic!("unrecognized entry type: {}", element);
+                        }
+
+                        let formula = make_formula(&items[3]);
+                        if let Sexp::Atom(name) = &items[1] {
+                            entries.push(Entry {
+                                name: name.to_string(),
+                                is_axiom,
+                                formula,
+                            });
+                        } else {
+                            panic!("bad formula name in: {}", element);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 fn make_entries(input: &Sexp) -> Vec<Entry> {
     let mut answer = Vec::new();
