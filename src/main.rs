@@ -367,28 +367,38 @@ fn make_entries(input: &Sexp) -> Vec<Entry> {
     answer
 }
 
-fn main() -> std::io::Result<()> {
-    let mut file = File::open("tptp/FNE/BOO109+1.p")?;
+// Filename is relative to the tptp directory.
+fn load_tptp(fname: &str) -> Vec<Entry> {
+    let full = format!("tptp/{}", fname);
+    let mut file = File::open(full).unwrap();
     let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    println!("contents are:\n {}", contents);
+    file.read_to_string(&mut contents).unwrap();
+    // println!("contents are:\n {}", contents);
+
     let tokens = tokenize(&contents);
-    println!("tokens are:\n {:?}", tokens);
+    // println!("tokens are:\n {:?}", tokens);
 
     let s = deparenthesize(tokens);
-    println!("sexp is: {}", s);
+    // println!("sexp is: {}", s);
 
     let dec = decomma(s);
-    println!("decommaed is: {}", dec);
+    // println!("decommaed is: {}", dec);
 
     let deo = deoperate(dec);
-    println!("deoperated is: {}", deo);
+    // println!("deoperated is: {}", deo);
 
-    let entries = make_entries(&deo);
-    println!("entries:");
-    for entry in entries {
-        println!("{}", entry);
+    make_entries(&deo)
+}
+
+fn main() -> () {
+    let fnames = ["BOO109+1.p", "COM008+1.p"];
+    for fname in &fnames {
+        let fne = format!("FNE/{}", fname);
+        let entries = load_tptp(&fne);
+
+        println!("\nentries for {}:", fname);
+        for entry in entries {
+            println!("{}", entry);
+        }
     }
-
-    Ok(())
 }
