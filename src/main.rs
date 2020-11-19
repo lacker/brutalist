@@ -5,12 +5,20 @@ use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 
+// A generic tree-of-strings structure.
 enum Sexp {
     Atom(String),
     List(Vec<Sexp>),
 }
 
 impl Sexp {
+    fn as_atom_str(&self) -> &str {
+        match self {
+            Sexp::Atom(s) => s.as_str(),
+            Sexp::List(_) => "",
+        }
+    }
+
     fn eq_atom(&self, s1: &str) -> bool {
         match self {
             Sexp::Atom(s2) => s1 == s2,
@@ -122,7 +130,8 @@ fn maybe_flatten(input: Vec<Sexp>) -> Sexp {
     return Sexp::List(input);
 }
 
-fn deinfix(input: Sexp) -> Sexp {
+// Turn infix operators and prefix operators into s-expressions
+fn deoperate(input: Sexp) -> Sexp {
     match input {
         Sexp::Atom(_) => input,
         Sexp::List(mut subexps) => {
@@ -135,30 +144,54 @@ fn deinfix(input: Sexp) -> Sexp {
                 {
                     let remaining = subexps.split_off(i + 1);
                     let element = subexps.pop().unwrap();
-                    let left = deinfix(maybe_flatten(subexps));
-                    let right = deinfix(maybe_flatten(remaining));
+                    let left = deoperate(maybe_flatten(subexps));
+                    let right = deoperate(maybe_flatten(remaining));
                     return Sexp::List(vec![element, left, right]);
                 }
             }
 
-            // There are no infix operators
-            return Sexp::List(subexps.into_iter().map(|s| deinfix(s)).collect());
+            // There are no infix operators. Check for a prefix operator
+            if subexps[0].eq_atom("~") {
+                let op = subexps.remove(0);
+                let arg = deoperate(maybe_flatten(subexps));
+                return Sexp::List(vec![op, arg]);
+            }
+
+            // There are no operators at all.
+            return Sexp::List(subexps.into_iter().map(|s| deoperate(s)).collect());
+        }
+    }
+}
+
+fn make_term(input: &Sexp) -> Term {
+    match input {
+        Sexp::Atom(a) => {
+            let ch = a.chars().next().unwrap();
+            if ch.is_ascii_uppercase() {
+                return Term::Variable(a.to_string());
+            }
+            if ch.is_ascii_lowercase() {
+                return Term::Constant(a.to_string());
+            }
+            panic!("weird atom: {}", a);
+        }
+        Sexp::List(elements) => {
+            if let Sexp::Atom(fname) = &elements[0] {
+                let mut terms = Vec::new();
+                for element in &elements[1..] {
+                    terms.push(make_term(element));
+                }
+                return Term::Function(fname.to_string(), terms);
+            } else {
+                panic!("bad term: {}", input);
+            }
         }
     }
 }
 
 fn make_formula(input: &Sexp) -> Formula {
     match input {
-        Sexp::Atom(a) => {
-            let ch = a.chars().next().unwrap();
-            if ch.is_ascii_uppercase() {
-                return Formula::Atomic(Term::Variable(a.to_string()));
-            }
-            if ch.is_ascii_lowercase() {
-                return Formula::Atomic(Term::Constant(a.to_string()));
-            }
-            panic!("weird atom: {}", a);
-        }
+        Sexp::Atom(_) => Formula::Atomic(make_term(input)),
         Sexp::List(elements) => {
             // Handle the weird forall/exists syntax
             if elements.len() == 4 && elements[2].eq_atom(":") {
@@ -188,15 +221,49 @@ fn make_formula(input: &Sexp) -> Formula {
                 }
             }
 
-            panic!("TODO: handle other cases");
+            // Handle function "atoms"
+            if let Sexp::Atom(_) = elements[0] {
+                return Formula::Atomic(make_term(input));
+            }
+
+            // Everything left should be binary operators
+            if elements.len() != 3 {
+                panic!("expected binary operator at {}", input);
+            }
+
+            let left = Box::new(make_formula(&elements[1]));
+            let right = Box::new(make_formula(&elements[2]));
+            match elements[0].as_atom_str() {
+                "&" => Formula::And(left, right),
+                "|" => Formula::Or(left, right),
+                "=>" => Formula::Implies(left, right),
+                "<=" => Formula::Implies(right, left),
+                "<=>" => Formula::Iff(left, right),
+                _ => panic!("unknown binary operator at {}", input),
+            }
         }
     }
 }
 
+// Term/Formula/Entry are specific to first-order logic.
 enum Term {
     Constant(String),
     Variable(String),
     Function(String, Vec<Term>),
+}
+
+impl fmt::Display for Term {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Term::Constant(s) => write!(f, "{}", s),
+            Term::Variable(s) => write!(f, "{}", s),
+            Term::Function(s, v) => {
+                let terms = v.iter().map(|s| s.to_string());
+                let joined = terms.collect::<Vec<_>>().join(", ");
+                write!(f, "{}({})", s, joined)
+            }
+        }
+    }
 }
 
 enum Formula {
@@ -230,8 +297,8 @@ fn main() -> std::io::Result<()> {
     let dec = decomma(s);
     println!("decommaed is: {}", dec);
 
-    let dei = deinfix(dec);
-    println!("deinfixed is: {}", dei);
+    let deo = deoperate(dec);
+    println!("deoperated is: {}", deo);
 
     Ok(())
 }
