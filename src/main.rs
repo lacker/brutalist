@@ -26,14 +26,27 @@ impl Sexp {
         }
     }
 
-    fn is_alpha(&self) -> bool {
+    fn looks_atomic(&self) -> bool {
         match self {
             Sexp::Atom(s) => match s.chars().next() {
                 None => false,
-                Some(ch) => ch.is_alphabetic(),
+                Some(ch) => ch.is_alphabetic() || ch == '$',
             },
             Sexp::List(_) => false,
         }
+    }
+
+    fn is_prefix(&self) -> bool {
+        return self.eq_atom("?") || self.eq_atom("!") || self.eq_atom("~");
+    }
+
+    fn is_infix(&self) -> bool {
+        return self.eq_atom("<=>")
+            || self.eq_atom("<=")
+            || self.eq_atom("=>")
+            || self.eq_atom("<~>")
+            || self.eq_atom("&")
+            || self.eq_atom("|");
     }
 }
 
@@ -53,7 +66,7 @@ impl fmt::Display for Sexp {
 fn tokenize(text: &str) -> Vec<&str> {
     lazy_static! {
         static ref RE: Regex =
-            Regex::new(r"([[:alpha:]][[:word:]]*|'[^']*'|<=>|<=|=>|\S)").unwrap();
+            Regex::new(r"([[:alpha:]][[:word:]]*|'[^']*'|<=>|<=|=>|<~>|$false|$true|\S)").unwrap();
     }
     RE.find_iter(text).map(|m| m.as_str()).collect()
 }
@@ -100,7 +113,7 @@ fn decomma(input: Sexp) -> Sexp {
             for subexp in subexps {
                 let exp = decomma(subexp);
                 if let Some(f) = accum.last() {
-                    if f.is_alpha() {
+                    if f.looks_atomic() {
                         if let Sexp::List(args) = exp {
                             // Combine arguments with function
                             let mut elements: Vec<Sexp> = Vec::new();
@@ -120,69 +133,34 @@ fn decomma(input: Sexp) -> Sexp {
     }
 }
 
-// Return a single Sexp if this is a one-element vector. Otherwise listify
-fn maybe_flatten(input: Vec<Sexp>) -> Sexp {
-    if input.len() == 0 {
-        panic!("cannot maybe_flatten empty list");
-    }
-    if input.len() == 1 {
-        return input.into_iter().next().unwrap();
-    }
-    return Sexp::List(input);
-}
-
 // Turn infix operators and prefix operators into s-expressions.
 // This also turns one-element lists into single elements, to eliminate extra parentheses.
 fn deoperate(input: Sexp) -> Sexp {
+    let s = input.to_string();
     match input {
         Sexp::Atom(_) => input,
         Sexp::List(mut subexps) => {
-            if subexps.len() == 0 {
-                panic!("deoperate should not hit empty lists");
-            }
-
-            if subexps.len() == 1 {
-                // Flatten
-                return deoperate(subexps.into_iter().next().unwrap());
-            }
-
-            for (i, element) in subexps.iter().enumerate() {
-                if element.eq_atom("&")
-                    || element.eq_atom("|")
-                    || element.eq_atom("=>")
-                    || element.eq_atom("<=")
-                    || element.eq_atom("<=>")
-                {
-                    let remaining = subexps.split_off(i + 1);
-                    let element = subexps.pop().unwrap();
-                    let left = deoperate(maybe_flatten(subexps));
-                    let right = deoperate(maybe_flatten(remaining));
-                    return Sexp::List(vec![element, left, right]);
-                }
-            }
-
-            // Prefix operators in the middle of a list indicate that we should split the
-            // expression in half.
-            for (i, element) in subexps.iter().enumerate().rev() {
-                if i == 0 {
-                    if element.eq_atom("~") {
-                        let op = subexps.remove(0);
-                        let arg = deoperate(maybe_flatten(subexps));
-                        return Sexp::List(vec![op, arg]);
-                    } else {
-                        // There are no operators here.
-                        return Sexp::List(subexps.into_iter().map(|s| deoperate(s)).collect());
+            // Recurse on the subexpressions in reverse order, looking for operators.
+            let mut accum = VecDeque::new();
+            while let Some(e) = subexps.pop() {
+                let subexp = deoperate(e);
+                if subexp.is_prefix() {
+                    // Roll up the existing subexpressions into one prefix expression
+                    accum.push_front(subexp);
+                    let prefix_exp = Sexp::List(accum.split_off(0).into_iter().collect());
+                    accum.push_front(prefix_exp);
+                } else if subexp.is_infix() {
+                    if accum.len() != 1 {
+                        panic!("expected a single rhs for an infix op in: {}", s);
                     }
-                }
-                if element.eq_atom("~") || element.eq_atom("?") || element.eq_atom("!") {
-                    let prefixed = subexps.split_off(i);
-                    let new_last = deoperate(maybe_flatten(prefixed));
-                    subexps.push(new_last);
-                    return Sexp::List(subexps);
+                    let lhs = deoperate(Sexp::List(subexps));
+                    let rhs = accum.pop_back().unwrap();
+                    return Sexp::List(vec![subexp, lhs, rhs]);
+                } else {
+                    accum.push_front(subexp);
                 }
             }
-
-            panic!("bad control logic");
+            return Sexp::List(accum.into_iter().collect());
         }
     }
 }
@@ -214,6 +192,7 @@ enum Formula {
     Not(Box<Formula>),
     Implies(Box<Formula>, Box<Formula>),
     Iff(Box<Formula>, Box<Formula>),
+    Xor(Box<Formula>, Box<Formula>),
     ForAll(String, Box<Formula>),
     Exists(String, Box<Formula>),
 }
@@ -227,6 +206,7 @@ impl fmt::Display for Formula {
             Formula::Not(arg) => write!(f, "not {}", arg),
             Formula::Implies(left, right) => write!(f, "({} => {})", left, right),
             Formula::Iff(left, right) => write!(f, "({} iff {})", left, right),
+            Formula::Xor(left, right) => write!(f, "({} xor {})", left, right),
             Formula::ForAll(v, exp) => write!(f, "∀{} {}", v, exp),
             Formula::Exists(v, exp) => write!(f, "∃{} {}", v, exp),
         }
@@ -258,7 +238,7 @@ fn make_term(input: &Sexp) -> Term {
             if ch.is_ascii_uppercase() {
                 return Term::Variable(a.to_string());
             }
-            if ch.is_ascii_lowercase() {
+            if ch.is_ascii_lowercase() || ch == '$' {
                 return Term::Constant(a.to_string());
             }
             panic!("weird atom: {}", a);
@@ -319,8 +299,13 @@ fn make_formula(input: &Sexp) -> Formula {
             }
 
             // Handle function "atoms"
-            if elements[0].is_alpha() {
+            if elements[0].looks_atomic() {
                 return Formula::Atomic(make_term(input));
+            }
+
+            // Handle pointless extra parentheses
+            if elements.len() == 1 {
+                return make_formula(&elements[0]);
             }
 
             // Handle "not"
@@ -333,7 +318,11 @@ fn make_formula(input: &Sexp) -> Formula {
 
             // Everything left should be binary operators
             if elements.len() != 3 {
-                panic!("expected binary operator at {}", input);
+                panic!(
+                    "unexpected expression of length {}: {}",
+                    elements.len(),
+                    input
+                );
             }
 
             let left = Box::new(make_formula(&elements[1]));
@@ -344,6 +333,7 @@ fn make_formula(input: &Sexp) -> Formula {
                 "=>" => Formula::Implies(left, right),
                 "<=" => Formula::Implies(right, left),
                 "<=>" => Formula::Iff(left, right),
+                "<~>" => Formula::Xor(left, right),
                 _ => panic!("unknown binary operator at {}", input),
             }
         }
@@ -447,9 +437,6 @@ fn main() -> () {
         .map(|p| String::from(p.unwrap().path().file_name().unwrap().to_str().unwrap()))
         .collect::<Vec<_>>();
     names.sort();
-
-    let e = make_entries("tptp/Axioms/KRS001+1.ax");
-    println!("got {} axioms", e.len());
 
     for name in names {
         let full = format!("tptp/FNE/{}", name);
