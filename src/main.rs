@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::VecDeque;
 use std::fmt;
-use std::fs::File;
+use std::fs;
 use std::io::prelude::*;
 
 // A generic tree-of-strings structure.
@@ -161,27 +161,28 @@ fn deoperate(input: Sexp) -> Sexp {
                 }
             }
 
-            // There are no infix operators. There still might be a
-            // prefix operator though.
-            // Prefix operators can be at the beginning.
-            if subexps[0].eq_atom("~") {
-                let op = subexps.remove(0);
-                let arg = deoperate(maybe_flatten(subexps));
-                return Sexp::List(vec![op, arg]);
+            // Prefix operators in the middle of a list indicate that we should split the
+            // expression in half.
+            for (i, element) in subexps.iter().enumerate().rev() {
+                if i == 0 {
+                    if element.eq_atom("~") {
+                        let op = subexps.remove(0);
+                        let arg = deoperate(maybe_flatten(subexps));
+                        return Sexp::List(vec![op, arg]);
+                    } else {
+                        // There are no operators here.
+                        return Sexp::List(subexps.into_iter().map(|s| deoperate(s)).collect());
+                    }
+                }
+                if element.eq_atom("~") || element.eq_atom("?") || element.eq_atom("!") {
+                    let prefixed = subexps.split_off(i);
+                    let new_last = deoperate(maybe_flatten(prefixed));
+                    subexps.push(new_last);
+                    return Sexp::List(subexps);
+                }
             }
 
-            // They can also be precisely the 4th out of 5 elements,
-            // if they are the top level of a quantifier.
-            if subexps.len() == 5 && subexps[3].eq_atom("~") {
-                let last = subexps.pop().unwrap();
-                let neg = subexps.pop().unwrap();
-                let clause = Sexp::List(vec![neg, deoperate(last)]);
-                subexps.push(clause);
-                return Sexp::List(subexps);
-            }
-
-            // There are no operators here.
-            return Sexp::List(subexps.into_iter().map(|s| deoperate(s)).collect());
+            panic!("bad control logic");
         }
     }
 }
@@ -370,8 +371,9 @@ fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {
                             if let Sexp::Atom(quoted) = &items[1] {
                                 let fname =
                                     quoted.strip_prefix("'").unwrap().strip_suffix("'").unwrap();
-                                println!("including {}...", fname);
-                                load_entries(fname, entries);
+                                let full = format!("tptp/{}", fname);
+                                println!("including {}...", full);
+                                load_entries(&full, entries);
                                 continue;
                             } else {
                                 panic!("could not find filename in: {}", element);
@@ -380,6 +382,7 @@ fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {
 
                         // Format is:
                         // fof <name> axiom|conjecture <formula>
+                        // "hypothesis" is used as a synonym for axiom
                         if items.len() != 4 {
                             panic!("unrecognized fof format: {}", element);
                         }
@@ -388,7 +391,7 @@ fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {
                             panic!("expected first token to be 'fof' in: {}", element);
                         }
 
-                        let is_axiom = items[2].eq_atom("axiom");
+                        let is_axiom = items[2].eq_atom("axiom") || items[2].eq_atom("hypothesis");
                         if !is_axiom && !items[2].eq_atom("conjecture") {
                             panic!("unrecognized entry type: {}", element);
                         }
@@ -412,8 +415,7 @@ fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {
 
 // Filename is relative to the tptp directory.
 fn load_entries(fname: &str, entries: &mut Vec<Entry>) {
-    let full = format!("tptp/{}", fname);
-    let mut file = File::open(full).unwrap();
+    let mut file = fs::File::open(fname).expect(&format!("could not load {}", fname));
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
     // println!("contents are:\n {}", contents);
@@ -433,22 +435,26 @@ fn load_entries(fname: &str, entries: &mut Vec<Entry>) {
     push_entries(&deo, entries)
 }
 
-// Load a file from the FNE directory
-fn load_fne(fname: &str) -> Vec<Entry> {
+fn make_entries(fname: &str) -> Vec<Entry> {
     let mut answer = Vec::new();
-    let fne = format!("FNE/{}", fname);
-    load_entries(&fne, &mut answer);
+    load_entries(&fname, &mut answer);
     answer
 }
 
 fn main() -> () {
-    let fnames = ["BOO109+1.p", "COM008+1.p", "CSR027+2.p"];
-    for fname in &fnames {
-        println!();
-        let entries = load_fne(fname);
-        println!("entries for {}:", fname);
-        for entry in entries {
-            println!("{}", entry);
-        }
+    let paths = fs::read_dir("tptp/FNE/").unwrap();
+    let mut names = paths
+        .map(|p| String::from(p.unwrap().path().file_name().unwrap().to_str().unwrap()))
+        .collect::<Vec<_>>();
+    names.sort();
+
+    let e = make_entries("tptp/Axioms/KRS001+1.ax");
+    println!("got {} axioms", e.len());
+
+    for name in names {
+        let full = format!("tptp/FNE/{}", name);
+        println!("loading {}", name);
+        let entries = make_entries(&full);
+        println!("got {} entries for {}", entries.len(), full);
     }
 }
