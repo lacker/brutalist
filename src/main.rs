@@ -66,7 +66,8 @@ impl fmt::Display for Sexp {
 fn tokenize(text: &str) -> Vec<&str> {
     lazy_static! {
         static ref RE: Regex =
-            Regex::new(r"([[:alpha:]][[:word:]]*|'[^']*'|<=>|<=|=>|<~>|$false|$true|\S)").unwrap();
+            Regex::new(r"([[:alpha:]][[:word:]]*|'[^']*'|<=>|<=|=>|<~>|\$false|\$true|\S)")
+                .unwrap();
     }
     RE.find_iter(text).map(|m| m.as_str()).collect()
 }
@@ -231,6 +232,10 @@ impl fmt::Display for Entry {
     }
 }
 
+fn looks_constant(ch: char) -> bool {
+    return ch.is_ascii_lowercase() || ch == '$';
+}
+
 fn make_term(input: &Sexp) -> Term {
     match input {
         Sexp::Atom(a) => {
@@ -238,14 +243,14 @@ fn make_term(input: &Sexp) -> Term {
             if ch.is_ascii_uppercase() {
                 return Term::Variable(a.to_string());
             }
-            if ch.is_ascii_lowercase() || ch == '$' {
+            if looks_constant(ch) {
                 return Term::Constant(a.to_string());
             }
             panic!("weird atom: {}", a);
         }
         Sexp::List(elements) => {
             if let Sexp::Atom(fname) = &elements[0] {
-                if !fname.chars().next().unwrap().is_ascii_lowercase() {
+                if !looks_constant(fname.chars().next().unwrap()) {
                     panic!("function names must be constants");
                 }
                 let mut terms = Vec::new();
