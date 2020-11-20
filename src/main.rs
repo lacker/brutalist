@@ -132,8 +132,7 @@ fn maybe_flatten(input: Vec<Sexp>) -> Sexp {
 }
 
 // Turn infix operators and prefix operators into s-expressions.
-// If flatten is set, this also turns one-element lists into single
-// elements, to eliminate extra parentheses.
+// This also turns one-element lists into single elements, to eliminate extra parentheses.
 fn deoperate(input: Sexp) -> Sexp {
     match input {
         Sexp::Atom(_) => input,
@@ -162,14 +161,26 @@ fn deoperate(input: Sexp) -> Sexp {
                 }
             }
 
-            // There are no infix operators. Check for a prefix operator
+            // There are no infix operators. There still might be a
+            // prefix operator though.
+            // Prefix operators can be at the beginning.
             if subexps[0].eq_atom("~") {
                 let op = subexps.remove(0);
                 let arg = deoperate(maybe_flatten(subexps));
                 return Sexp::List(vec![op, arg]);
             }
 
-            // There are no operators at all.
+            // They can also be precisely the 4th out of 5 elements,
+            // if they are the top level of a quantifier.
+            if subexps.len() == 5 && subexps[3].eq_atom("~") {
+                let last = subexps.pop().unwrap();
+                let neg = subexps.pop().unwrap();
+                let clause = Sexp::List(vec![neg, deoperate(last)]);
+                subexps.push(clause);
+                return Sexp::List(subexps);
+            }
+
+            // There are no operators here.
             return Sexp::List(subexps.into_iter().map(|s| deoperate(s)).collect());
         }
     }
@@ -271,6 +282,17 @@ fn make_term(input: &Sexp) -> Term {
     }
 }
 
+fn make_quantifier(is_exists: bool, v: &str, f: Formula) -> Formula {
+    if !v.chars().next().unwrap().is_ascii_uppercase() {
+        panic!("bad variable name: {}", v);
+    }
+    if is_exists {
+        Formula::Exists(v.to_string(), Box::new(f))
+    } else {
+        Formula::ForAll(v.to_string(), Box::new(f))
+    }
+}
+
 fn make_formula(input: &Sexp) -> Formula {
     match input {
         Sexp::Atom(_) => Formula::Atomic(make_term(input)),
@@ -282,24 +304,16 @@ fn make_formula(input: &Sexp) -> Formula {
                 if !is_exists && !elements[0].eq_atom("!") {
                     panic!("bad elements[0] in: {}", input);
                 }
-                if let Sexp::List(vars) = &elements[1] {
-                    for var in vars.iter().rev() {
-                        if let Sexp::Atom(v) = var {
-                            if !v.chars().next().unwrap().is_ascii_uppercase() {
-                                panic!("bad variable name: {}", v);
-                            }
-                            if is_exists {
-                                answer = Formula::Exists(v.to_string(), Box::new(answer));
-                            } else {
-                                answer = Formula::ForAll(v.to_string(), Box::new(answer));
-                            }
-                        } else {
-                            panic!("bad nesting in {}", input);
-                        }
+                match &elements[1] {
+                    Sexp::Atom(v) => {
+                        return make_quantifier(is_exists, &v, answer);
                     }
-                    return answer;
-                } else {
-                    panic!("bad elements[1] in: {}", input);
+                    Sexp::List(vars) => {
+                        for v in vars.iter().rev() {
+                            answer = make_quantifier(is_exists, v.as_atom_str(), answer);
+                        }
+                        return answer;
+                    }
                 }
             }
 
