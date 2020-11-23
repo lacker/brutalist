@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt;
 use std::fs;
@@ -166,6 +167,7 @@ fn deoperate(input: Sexp) -> Sexp {
     }
 }
 // Term/Formula/Entry are specific to first-order logic.
+#[derive(Clone)]
 enum Term {
     Constant(String),
     Variable(String),
@@ -186,6 +188,7 @@ impl fmt::Display for Term {
     }
 }
 
+#[derive(Clone)]
 enum Formula {
     Atomic(Term),
     And(Box<Formula>, Box<Formula>),
@@ -214,6 +217,7 @@ impl fmt::Display for Formula {
     }
 }
 
+#[derive(Clone)]
 struct Entry {
     name: String,
     is_axiom: bool,
@@ -345,95 +349,134 @@ fn make_formula(input: &Sexp) -> Formula {
     }
 }
 
-fn push_entries(input: &Sexp, entries: &mut Vec<Entry>) {
-    match input {
-        Sexp::Atom(_) => panic!("cannot make entries from an atom"),
-        Sexp::List(elements) => {
-            for element in elements {
-                match element {
-                    Sexp::Atom(s) => {
-                        if s != "." {
-                            panic!("unexpected top-level atom: {}", s);
-                        }
-                    }
-                    Sexp::List(items) => {
-                        // Format is:
-                        // include 'fname'
-                        if items.len() == 2 {
-                            if !items[0].eq_atom("include") {
-                                panic!("unrecognized size-2 element: {}", element);
+struct Loader {
+    entries: HashMap<String, Vec<Entry>>,
+    dependencies: HashMap<String, Vec<String>>,
+}
+
+impl Loader {
+    fn new() -> Loader {
+        Loader {
+            entries: HashMap::new(),
+            dependencies: HashMap::new(),
+        }
+    }
+
+    fn load_sexp(&mut self, fname: &str, input: &Sexp) {
+        match input {
+            Sexp::Atom(_) => panic!("cannot make entries from an atom"),
+            Sexp::List(elements) => {
+                let mut entries: Vec<Entry> = Vec::new();
+                let mut dependencies: Vec<String> = Vec::new();
+
+                for element in elements {
+                    match element {
+                        Sexp::Atom(s) => {
+                            if s != "." {
+                                panic!("unexpected top-level atom: {}", s);
                             }
-                            if let Sexp::Atom(quoted) = &items[1] {
-                                let fname =
-                                    quoted.strip_prefix("'").unwrap().strip_suffix("'").unwrap();
-                                let full = format!("tptp/{}", fname);
-                                println!("including {}...", full);
-                                load_entries(&full, entries);
-                                continue;
+                        }
+                        Sexp::List(items) => {
+                            // Format is:
+                            // include 'fname'
+                            if items.len() == 2 {
+                                if !items[0].eq_atom("include") {
+                                    panic!("unrecognized size-2 element: {}", element);
+                                }
+                                if let Sexp::Atom(quoted) = &items[1] {
+                                    let depname = quoted
+                                        .strip_prefix("'")
+                                        .unwrap()
+                                        .strip_suffix("'")
+                                        .unwrap();
+                                    let full = format!("tptp/{}", depname);
+                                    // println!("including {}...", full);
+                                    self.load_file(&full);
+                                    dependencies.push(full);
+                                    continue;
+                                } else {
+                                    panic!("could not find filename in: {}", element);
+                                }
+                            }
+
+                            // Format is:
+                            // fof <name> axiom|conjecture <formula>
+                            // "hypothesis" is used as a synonym for axiom
+                            if items.len() != 4 {
+                                panic!("unrecognized fof format: {}", element);
+                            }
+
+                            if !items[0].eq_atom("fof") {
+                                panic!("expected first token to be 'fof' in: {}", element);
+                            }
+
+                            let is_axiom =
+                                items[2].eq_atom("axiom") || items[2].eq_atom("hypothesis");
+                            if !is_axiom && !items[2].eq_atom("conjecture") {
+                                panic!("unrecognized entry type: {}", element);
+                            }
+
+                            let formula = make_formula(&items[3]);
+                            if let Sexp::Atom(name) = &items[1] {
+                                entries.push(Entry {
+                                    name: name.to_string(),
+                                    is_axiom,
+                                    formula,
+                                });
                             } else {
-                                panic!("could not find filename in: {}", element);
+                                panic!("bad formula name in: {}", element);
                             }
-                        }
-
-                        // Format is:
-                        // fof <name> axiom|conjecture <formula>
-                        // "hypothesis" is used as a synonym for axiom
-                        if items.len() != 4 {
-                            panic!("unrecognized fof format: {}", element);
-                        }
-
-                        if !items[0].eq_atom("fof") {
-                            panic!("expected first token to be 'fof' in: {}", element);
-                        }
-
-                        let is_axiom = items[2].eq_atom("axiom") || items[2].eq_atom("hypothesis");
-                        if !is_axiom && !items[2].eq_atom("conjecture") {
-                            panic!("unrecognized entry type: {}", element);
-                        }
-
-                        let formula = make_formula(&items[3]);
-                        if let Sexp::Atom(name) = &items[1] {
-                            entries.push(Entry {
-                                name: name.to_string(),
-                                is_axiom,
-                                formula,
-                            });
-                        } else {
-                            panic!("bad formula name in: {}", element);
                         }
                     }
                 }
+                self.entries.insert(fname.to_string(), entries);
+                self.dependencies.insert(fname.to_string(), dependencies);
             }
         }
     }
-}
 
-// Filename is relative to the tptp directory.
-fn load_entries(fname: &str, entries: &mut Vec<Entry>) {
-    let mut file = fs::File::open(fname).expect(&format!("could not load {}", fname));
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).unwrap();
-    // println!("contents are:\n {}", contents);
+    // Filename is relative to the tptp directory.
+    fn load_file(&mut self, fname: &str) {
+        if self.entries.contains_key(fname) {
+            // We already loaded this
+            return;
+        }
 
-    let tokens = tokenize(&contents);
-    // println!("tokens are:\n {:?}", tokens);
+        let mut file = fs::File::open(fname).expect(&format!("could not load {}", fname));
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
+        // println!("contents are:\n {}", contents);
 
-    let s = deparenthesize(tokens);
-    // println!("sexp is: {}", s);
+        let tokens = tokenize(&contents);
+        // println!("tokens are:\n {:?}", tokens);
 
-    let dec = decomma(s);
-    // println!("decommaed is: {}", dec);
+        let s = deparenthesize(tokens);
+        // println!("sexp is: {}", s);
 
-    let deo = deoperate(dec);
-    // println!("deoperated is: {}", deo);
+        let dec = decomma(s);
+        // println!("decommaed is: {}", dec);
 
-    push_entries(&deo, entries)
-}
+        let deo = deoperate(dec);
+        // println!("deoperated is: {}", deo);
 
-fn make_entries(fname: &str) -> Vec<Entry> {
-    let mut answer = Vec::new();
-    load_entries(&fname, &mut answer);
-    answer
+        self.load_sexp(fname, &deo);
+    }
+
+    fn push_entries(&self, fname: &str, answer: &mut Vec<Entry>) {
+        for dep in self.dependencies.get(fname).unwrap() {
+            self.push_entries(dep, answer);
+        }
+        for entry in self.entries.get(fname).unwrap() {
+            answer.push(entry.clone());
+        }
+    }
+
+    fn get_entries(&mut self, fname: &str) -> Vec<Entry> {
+        self.load_file(fname);
+        let mut answer = Vec::new();
+        self.push_entries(fname, &mut answer);
+        return answer;
+    }
 }
 
 fn main() -> () {
@@ -443,10 +486,11 @@ fn main() -> () {
         .collect::<Vec<_>>();
     names.sort();
 
+    let mut loader = Loader::new();
     for name in names {
         let full = format!("tptp/FNE/{}", name);
         println!("loading {}", name);
-        let entries = make_entries(&full);
-        println!("got {} entries for {}", entries.len(), full);
+        let entries = loader.get_entries(&full);
+        println!("loaded {} from {}", entries.len(), full);
     }
 }
