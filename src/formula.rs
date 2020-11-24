@@ -38,6 +38,93 @@ pub enum Formula {
     Exists(String, Box<Formula>),
 }
 
+impl Formula {
+    pub fn is_atomic(&self) -> bool {
+        match self {
+            Formula::Atomic(_) => true,
+            _ => false,
+        }
+    }
+
+    // Whether this formula is in negation normal form.
+    pub fn is_nnf(&self) -> bool {
+        match self {
+            Formula::Atomic(_) => true,
+            Formula::And(f1, f2) => f1.is_nnf() && f2.is_nnf(),
+            Formula::Or(f1, f2) => f1.is_nnf() && f2.is_nnf(),
+            Formula::Not(f) => f.is_atomic(),
+            Formula::Implies(_, _) => false,
+            Formula::Iff(_, _) => false,
+            Formula::Xor(_, _) => false,
+            Formula::ForAll(_, f) => f.is_nnf(),
+            Formula::Exists(_, f) => f.is_nnf(),
+        }
+    }
+
+    pub fn to_nnf(&self) -> Formula {
+        match self {
+            Formula::Atomic(_) => self.clone(),
+            Formula::And(f1, f2) => Formula::And(Box::new(f1.to_nnf()), Box::new(f2.to_nnf())),
+            Formula::Or(f1, f2) => Formula::Or(Box::new(f1.to_nnf()), Box::new(f2.to_nnf())),
+            Formula::Not(f) => f.negate_into_nnf(),
+            Formula::Implies(f1, f2) => {
+                Formula::Or(Box::new(f1.negate_into_nnf()), Box::new(f2.to_nnf()))
+            }
+            Formula::Iff(f1, f2) => {
+                let right = Formula::Or(Box::new(f1.negate_into_nnf()), Box::new(f2.to_nnf()));
+                let left = Formula::Or(Box::new(f1.to_nnf()), Box::new(f2.negate_into_nnf()));
+                Formula::And(Box::new(left), Box::new(right))
+            }
+            Formula::Xor(f1, f2) => {
+                let one_true = Formula::Or(Box::new(f1.to_nnf()), Box::new(f2.to_nnf()));
+                let one_false = Formula::Or(
+                    Box::new(f1.negate_into_nnf()),
+                    Box::new(f2.negate_into_nnf()),
+                );
+                Formula::And(Box::new(one_true), Box::new(one_false))
+            }
+            Formula::ForAll(s, f) => Formula::ForAll(s.to_string(), Box::new(f.to_nnf())),
+            Formula::Exists(s, f) => Formula::Exists(s.to_string(), Box::new(f.to_nnf())),
+        }
+    }
+
+    // Simultaneously negate and convert into negation normal form.
+    fn negate_into_nnf(&self) -> Formula {
+        match self {
+            Formula::Atomic(_) => Formula::Not(Box::new(self.clone())),
+            Formula::And(f1, f2) => Formula::Or(
+                Box::new(f1.negate_into_nnf()),
+                Box::new(f2.negate_into_nnf()),
+            ),
+            Formula::Or(f1, f2) => Formula::And(
+                Box::new(f1.negate_into_nnf()),
+                Box::new(f2.negate_into_nnf()),
+            ),
+            Formula::Not(f) => f.to_nnf(),
+            Formula::Implies(f1, f2) => {
+                Formula::And(Box::new(f1.to_nnf()), Box::new(f2.negate_into_nnf()))
+            }
+            Formula::Iff(f1, f2) => {
+                // Not-iff is the same as xor
+                let one_true = Formula::Or(Box::new(f1.to_nnf()), Box::new(f2.to_nnf()));
+                let one_false = Formula::Or(
+                    Box::new(f1.negate_into_nnf()),
+                    Box::new(f2.negate_into_nnf()),
+                );
+                Formula::And(Box::new(one_true), Box::new(one_false))
+            }
+            Formula::Xor(f1, f2) => {
+                // Not-xor is the same as iff
+                let right = Formula::Or(Box::new(f1.negate_into_nnf()), Box::new(f2.to_nnf()));
+                let left = Formula::Or(Box::new(f1.to_nnf()), Box::new(f2.negate_into_nnf()));
+                Formula::And(Box::new(left), Box::new(right))
+            }
+            Formula::ForAll(s, f) => Formula::Exists(s.to_string(), Box::new(f.negate_into_nnf())),
+            Formula::Exists(s, f) => Formula::ForAll(s.to_string(), Box::new(f.negate_into_nnf())),
+        }
+    }
+}
+
 impl fmt::Display for Formula {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {

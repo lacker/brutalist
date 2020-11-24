@@ -20,5 +20,10 @@ fn main() -> () {
         let mut legend = Legend::new();
         legend.add_entries(&entries);
         println!("legend has {} strings", legend.s_for_id.len());
+
+        for entry in entries {
+            let nnf = entry.formula.to_nnf();
+            assert!(nnf.is_nnf());
+        }
     }
 }
