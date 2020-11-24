@@ -394,6 +394,7 @@ impl Loader {
         self.load_sexp(fname, &deo);
     }
 
+    // Appends all entries for a file, including dependencies
     fn push_entries(&self, fname: &str, answer: &mut Vec<Entry>) {
         for dep in self.dependencies.get(fname).unwrap() {
             self.push_entries(dep, answer);
@@ -403,6 +404,7 @@ impl Loader {
         }
     }
 
+    // Gets all entries for a file, including dependencies
     pub fn get_entries(&mut self, fname: &str) -> Vec<Entry> {
         self.load_file(fname);
         let mut answer = Vec::new();
