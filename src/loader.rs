@@ -282,7 +282,7 @@ fn make_formula(input: &Sexp) -> Formula {
 }
 
 pub struct Loader {
-    entries: HashMap<String, Vec<Entry>>,
+    pub entries: HashMap<String, Vec<Entry>>,
     dependencies: HashMap<String, Vec<String>>,
 }
 

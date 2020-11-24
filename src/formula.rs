@@ -11,6 +11,16 @@ pub enum Term {
     Function(String, Vec<Term>),
 }
 
+impl Term {
+    pub fn size(&self) -> u32 {
+        match self {
+            Term::Constant(_) => 1,
+            Term::Variable(_) => 1,
+            Term::Function(_, ts) => ts.iter().map(|t| t.size()).sum::<u32>() + 1,
+        }
+    }
+}
+
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -43,6 +53,21 @@ impl Formula {
         match self {
             Formula::Atomic(_) => true,
             _ => false,
+        }
+    }
+
+    // Size is the number of Formula or Term objects in the tree
+    pub fn size(&self) -> u32 {
+        match self {
+            Formula::Atomic(t) => 1 + t.size(),
+            Formula::And(f1, f2) => 1 + f1.size() + f2.size(),
+            Formula::Or(f1, f2) => 1 + f1.size() + f2.size(),
+            Formula::Not(f) => 1 + f.size(),
+            Formula::Implies(f1, f2) => 1 + f1.size() + f2.size(),
+            Formula::Iff(f1, f2) => 1 + f1.size() + f2.size(),
+            Formula::Xor(f1, f2) => 1 + f1.size() + f2.size(),
+            Formula::ForAll(_, f) => 1 + f.size(),
+            Formula::Exists(_, f) => 1 + f.size(),
         }
     }
 
@@ -239,5 +264,9 @@ impl Legend {
         for entry in entries {
             self.add_entry(entry);
         }
+    }
+
+    pub fn size(&self) -> usize {
+        self.s_for_id.len()
     }
 }

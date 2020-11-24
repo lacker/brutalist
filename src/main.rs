@@ -17,13 +17,22 @@ fn main() -> () {
         println!("loading {}", name);
         let entries = loader.get_entries(&full);
         println!("loaded {} from {}", entries.len(), full);
-        let mut legend = Legend::new();
-        legend.add_entries(&entries);
-        println!("legend has {} strings", legend.s_for_id.len());
+    }
 
+    let mut legend = Legend::new();
+    for (_, entries) in &loader.entries {
+        legend.add_entries(&entries);
+    }
+    println!("legend size: {}", legend.size());
+    for (_, entries) in &loader.entries {
         for entry in entries {
+            let presize = entry.formula.size();
             let nnf = entry.formula.to_nnf();
+            let postsize = nnf.size();
             assert!(nnf.is_nnf());
+            if postsize > 4 * presize {
+                println!("presize {} -> postsize {}", presize, postsize);
+            }
         }
     }
 }
