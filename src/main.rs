@@ -3,6 +3,7 @@ use std::fs;
 
 mod formula;
 mod loader;
+mod skolem;
 
 fn main() -> () {
     let paths = fs::read_dir("tptp/FNE/").unwrap();
