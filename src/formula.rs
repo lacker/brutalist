@@ -56,6 +56,13 @@ impl Formula {
         }
     }
 
+    pub fn is_exists(&self) -> bool {
+        match self {
+            Formula::Exists(_, _) => true,
+            _ => false,
+        }
+    }
+
     // Size is the number of Formula or Term objects in the tree
     pub fn size(&self) -> u32 {
         match self {
@@ -68,6 +75,23 @@ impl Formula {
             Formula::Xor(f1, f2) => 1 + f1.size() + f2.size(),
             Formula::ForAll(_, f) => 1 + f.size(),
             Formula::Exists(_, f) => 1 + f.size(),
+        }
+    }
+
+    pub fn any(&self, f: fn(&Formula) -> bool) -> bool {
+        if f(self) {
+            return true;
+        }
+        match self {
+            Formula::Atomic(_) => false,
+            Formula::And(x1, x2) => x1.any(f) || x2.any(f),
+            Formula::Or(x1, x2) => x1.any(f) || x2.any(f),
+            Formula::Not(x) => x.any(f),
+            Formula::Implies(x1, x2) => x1.any(f) || x2.any(f),
+            Formula::Iff(x1, x2) => x1.any(f) || x2.any(f),
+            Formula::Xor(x1, x2) => x1.any(f) || x2.any(f),
+            Formula::ForAll(_, x) => x.any(f),
+            Formula::Exists(_, x) => x.any(f),
         }
     }
 

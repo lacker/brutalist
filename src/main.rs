@@ -1,4 +1,5 @@
 use crate::formula::*;
+use crate::skolem::*;
 use std::fs;
 
 mod formula;
@@ -25,14 +26,25 @@ fn main() -> () {
         legend.add_entries(&entries);
     }
     println!("legend size: {}", legend.size());
+
+    // See http://www.cs.cmu.edu/~emc/15817-s12/lecture/20120425_vampire.pdf
+    // for a description of the 4-step normalization process.
     for (_, entries) in &loader.entries {
         for entry in entries {
+            // Phase 1: negation normal form.
             let presize = entry.formula.size();
-            let nnf = entry.formula.to_nnf();
-            let postsize = nnf.size();
-            assert!(nnf.is_nnf());
+            let norm1 = entry.formula.to_nnf();
+            let postsize = norm1.size();
+            assert!(norm1.is_nnf());
             if postsize > 4 * presize {
                 println!("presize {} -> postsize {}", presize, postsize);
+            }
+
+            // Phase 2: skolemizing
+            let mut sk = Skolemizer::new();
+            let norm2 = sk.skolemize(&norm1);
+            if !norm2.any(|f| f.is_exists()) {
+                panic!("bad skolemization");
             }
         }
     }

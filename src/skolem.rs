@@ -56,12 +56,26 @@ impl Skolemizer {
             Formula::Xor(_, _) => panic!("only skolemize in nnf"),
             Formula::ForAll(s, f) => {
                 self.universals.push(s.to_string());
-                let answer = self.skolemize(f);
+                let subformula = self.skolemize(f);
                 let used = self.universals.pop().unwrap();
                 assert!(s == &used);
+                Formula::ForAll(s.to_string(), Box::new(subformula))
+            }
+            Formula::Exists(s, f) => {
+                // Create a new skolem function
+                let name = format!("s${}", self.created);
+                self.created += 1;
+                let subterms = self
+                    .universals
+                    .iter()
+                    .map(|s| Term::Variable(s.to_string()))
+                    .collect();
+                let term = Term::Function(name, subterms);
+                self.rewrite.insert(s.to_string(), term);
+                let answer = self.skolemize(f);
+                self.rewrite.remove(s);
                 answer
             }
-            _ => panic!("XXX"),
         }
     }
 }
