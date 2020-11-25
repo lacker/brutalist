@@ -43,7 +43,9 @@ fn main() -> () {
             // Phase 2: skolemizing
             let mut sk = Skolemizer::new();
             let norm2 = sk.skolemize(&norm1);
-            if !norm2.any(|f| f.is_exists()) {
+            if norm2.any(|f| f.is_exists()) {
+                println!("norm1: {}", norm1);
+                println!("norm2: {}", norm2);
                 panic!("bad skolemization");
             }
         }
