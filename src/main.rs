@@ -21,12 +21,6 @@ fn main() -> () {
         println!("loaded {} from {}", entries.len(), full);
     }
 
-    let mut legend = Legend::new();
-    for (_, entries) in &loader.entries {
-        legend.add_entries(&entries);
-    }
-    println!("legend size: {}", legend.size());
-
     // See http://www.cs.cmu.edu/~emc/15817-s12/lecture/20120425_vampire.pdf
     // for a description of the 4-step normalization process.
 
