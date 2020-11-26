@@ -1,9 +1,9 @@
-use crate::formula::*;
+use crate::logic::*;
 use crate::skolem::*;
 use std::fs;
 
-mod formula;
 mod loader;
+mod logic;
 mod skolem;
 
 fn main() -> () {
@@ -29,6 +29,11 @@ fn main() -> () {
 
     // See http://www.cs.cmu.edu/~emc/15817-s12/lecture/20120425_vampire.pdf
     // for a description of the 4-step normalization process.
+
+    // Skolemizer should be shared across entries, so that we assign differently-named
+    // skolem functions to each entry.
+    let mut sk = Skolemizer::new();
+
     for (_, entries) in &loader.entries {
         for entry in entries {
             // Phase 1: negation normal form.
@@ -41,7 +46,6 @@ fn main() -> () {
             }
 
             // Phase 2: skolemizing
-            let mut sk = Skolemizer::new();
             let norm2 = sk.skolemize(&norm1);
             if norm2.any(|f| f.is_exists()) {
                 println!("norm1: {}", norm1);
