@@ -255,6 +255,24 @@ impl Legend {
         }
     }
 
+    // Converts a term into an atomic formula.
+    // varmap determines how variables are turned into ids.
+    fn convert_term(&self, varmap: &HashMap<String, u32>, term: &Term) -> AtomicFormula {
+        match term {
+            Term::Constant(s) => AtomicFormula::Constant(*self.id_for_constant.get(s).unwrap()),
+            Term::Variable(s) => AtomicFormula::Variable(*varmap.get(s).unwrap()),
+            Term::Function(s, terms) => {
+                let f = *self.id_for_function.get(s).unwrap();
+                let mut subformulas = Vec::new();
+                for term in terms {
+                    subformulas.push(self.convert_term(varmap, term));
+                }
+                AtomicFormula::Function(f, subformulas)
+            }
+        }
+    }
+
+    // Converts a formula into a list of clauses.
     // varmap contains the variable -> id map to use for this formula.
     fn clausify_aux(
         &mut self,
@@ -262,12 +280,18 @@ impl Legend {
         formula: &Formula,
         clauses: &mut Vec<Clause>,
     ) {
+        match self {
+            _ => panic!("XXX"),
+        }
         // TODO: for an "and" node, you just stick the clauses together.
         // For an "or" node, you have to distribute, make mn clauses.
         // Atomic and Not need to turn into literals.
         // ForAll should just mess with the varmap.
     }
 
+    // Converts a formula to clausal normal form (CNF).
+    // It should already be skolemized.
+    // This also converts to prenex form.
     pub fn clausify(&mut self, formula: &Formula) -> Vec<Clause> {
         let mut varmap = HashMap::new();
         let mut clauses = Vec::new();
