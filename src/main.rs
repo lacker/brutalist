@@ -46,6 +46,11 @@ fn main() -> () {
                 println!("norm2: {}", norm2);
                 panic!("bad skolemization");
             }
+
+            // Phase 3+4: CNF
+            let mut legend = Legend::new();
+            let clauses = legend.clausify(&norm2);
+            println!("converted {} to {} CNF clauses", entry.name, clauses.len());
         }
     }
 }

@@ -217,12 +217,14 @@ impl fmt::Display for Entry {
 // has an implicit universal quantifier on all its variables.
 // In terms of the data they store, they are basically the same.
 // We use different data structures anyway so AtomicFormula can avoid string handling.
+#[derive(Clone)]
 pub enum AtomicFormula {
     Constant(u32),
     Variable(u32),
     Function(u32, Vec<AtomicFormula>),
 }
 
+#[derive(Clone)]
 pub enum Literal {
     Positive(AtomicFormula),
     Negative(AtomicFormula),
@@ -256,8 +258,10 @@ impl Legend {
     }
 
     // Converts a term into an atomic formula.
+    // Allocates new ids for constants and functions if needed.
+    // XXX TODO: actually do that
     // varmap determines how variables are turned into ids.
-    fn convert_term(&self, varmap: &HashMap<String, u32>, term: &Term) -> AtomicFormula {
+    fn make_af(&self, varmap: &HashMap<String, u32>, term: &Term) -> AtomicFormula {
         match term {
             Term::Constant(s) => AtomicFormula::Constant(*self.id_for_constant.get(s).unwrap()),
             Term::Variable(s) => AtomicFormula::Variable(*varmap.get(s).unwrap()),
@@ -265,7 +269,7 @@ impl Legend {
                 let f = *self.id_for_function.get(s).unwrap();
                 let mut subformulas = Vec::new();
                 for term in terms {
-                    subformulas.push(self.convert_term(varmap, term));
+                    subformulas.push(self.make_af(varmap, term));
                 }
                 AtomicFormula::Function(f, subformulas)
             }
@@ -280,13 +284,53 @@ impl Legend {
         formula: &Formula,
         clauses: &mut Vec<Clause>,
     ) {
-        match self {
-            _ => panic!("XXX"),
+        match formula {
+            Formula::Atomic(t) => {
+                let af = self.make_af(varmap, t);
+                let clause = vec![Literal::Positive(af)];
+                clauses.push(clause);
+            }
+            Formula::Not(subf) => {
+                if let Formula::Atomic(t) = &**subf {
+                    let af = self.make_af(varmap, &t);
+                    let clause = vec![Literal::Negative(af)];
+                    clauses.push(clause);
+                } else {
+                    panic!("nots should be next to leaves");
+                }
+            }
+            Formula::And(f1, f2) => {
+                // For an "and" node, you just concatenate the clauses from children.
+                self.clausify_aux(varmap, f1, clauses);
+                self.clausify_aux(varmap, f2, clauses);
+            }
+            Formula::Or(f1, f2) => {
+                // For an "or" node, you have to distribute and make |f1| * |f2| clauses.
+                let mut left = Vec::new();
+                let mut right = Vec::new();
+                self.clausify_aux(varmap, f1, &mut left);
+                self.clausify_aux(varmap, f2, &mut right);
+                for a in left {
+                    for b in &right {
+                        let mut clause = a.clone();
+                        clause.extend(b.clone());
+                        clauses.push(clause);
+                    }
+                }
+            }
+            Formula::ForAll(s, f) => {
+                // We need to convert this to prenex form, so assign s its own id for
+                // the subformula rooted here.
+                if varmap.contains_key(s) {
+                    panic!("nested use of variable name {}", s);
+                }
+                let id = self.variable_for_id.len();
+                varmap.insert(s.to_string(), id.try_into().unwrap());
+                self.clausify_aux(varmap, f, clauses);
+                varmap.remove(s);
+            }
+            _ => panic!("Invalid node type in clausify_aux"),
         }
-        // TODO: for an "and" node, you just stick the clauses together.
-        // For an "or" node, you have to distribute, make mn clauses.
-        // Atomic and Not need to turn into literals.
-        // ForAll should just mess with the varmap.
     }
 
     // Converts a formula to clausal normal form (CNF).
@@ -296,6 +340,7 @@ impl Legend {
         let mut varmap = HashMap::new();
         let mut clauses = Vec::new();
         self.clausify_aux(&mut varmap, formula, &mut clauses);
+        assert!(varmap.is_empty());
         clauses
     }
 }
