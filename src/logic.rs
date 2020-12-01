@@ -259,13 +259,27 @@ impl Legend {
 
     // Converts a term into an atomic formula.
     // Allocates new ids for constants and functions if needed.
-    // XXX TODO: actually do that
-    // varmap determines how variables are turned into ids.
-    fn make_af(&self, varmap: &HashMap<String, u32>, term: &Term) -> AtomicFormula {
+    // varmap determines how variables are turned into ids, and it's an error if we see
+    // any variable that isn't in the varmap.
+    fn make_af(&mut self, varmap: &HashMap<String, u32>, term: &Term) -> AtomicFormula {
         match term {
-            Term::Constant(s) => AtomicFormula::Constant(*self.id_for_constant.get(s).unwrap()),
+            Term::Constant(s) => {
+                if !self.id_for_constant.contains_key(s) {
+                    // Allocate a new id for this constant
+                    let id: u32 = self.constant_for_id.len().try_into().unwrap();
+                    self.constant_for_id.push(s.to_string());
+                    self.id_for_constant.insert(s.to_string(), id);
+                }
+                AtomicFormula::Constant(*self.id_for_constant.get(s).unwrap())
+            }
             Term::Variable(s) => AtomicFormula::Variable(*varmap.get(s).unwrap()),
             Term::Function(s, terms) => {
+                if !self.id_for_function.contains_key(s) {
+                    // Allocate a new id for this function
+                    let id: u32 = self.function_for_id.len().try_into().unwrap();
+                    self.function_for_id.push(s.to_string());
+                    self.id_for_function.insert(s.to_string(), id);
+                }
                 let f = *self.id_for_function.get(s).unwrap();
                 let mut subformulas = Vec::new();
                 for term in terms {
@@ -324,8 +338,9 @@ impl Legend {
                 if varmap.contains_key(s) {
                     panic!("nested use of variable name {}", s);
                 }
-                let id = self.variable_for_id.len();
-                varmap.insert(s.to_string(), id.try_into().unwrap());
+                let id: u32 = self.variable_for_id.len().try_into().unwrap();
+                self.variable_for_id.push(s.to_string());
+                varmap.insert(s.to_string(), id);
                 self.clausify_aux(varmap, f, clauses);
                 varmap.remove(s);
             }
