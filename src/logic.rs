@@ -272,7 +272,13 @@ impl Legend {
                 }
                 AtomicFormula::Constant(*self.id_for_constant.get(s).unwrap())
             }
-            Term::Variable(s) => AtomicFormula::Variable(*varmap.get(s).unwrap()),
+            Term::Variable(s) => {
+                let id: Option<&u32> = varmap.get(s);
+                match id {
+                    Some(i) => AtomicFormula::Variable(*i),
+                    None => panic!("no variable id found for {}", s),
+                }
+            }
             Term::Function(s, terms) => {
                 if !self.id_for_function.contains_key(s) {
                     // Allocate a new id for this function

@@ -26,10 +26,15 @@ fn main() -> () {
 
     // Skolemizer should be shared across entries, so that we assign differently-named
     // skolem functions to each entry.
+    // Legend should also be shared, so that we assign the same id to functions and
+    // constants that are shared.
     let mut sk = Skolemizer::new();
+    let mut legend = Legend::new();
 
     for (_, entries) in &loader.entries {
         for entry in entries {
+            println!("converting {}", entry.name);
+
             // Phase 1: negation normal form.
             let presize = entry.formula.size();
             let norm1 = entry.formula.to_nnf();
@@ -48,9 +53,7 @@ fn main() -> () {
             }
 
             // Phase 3+4: CNF
-            let mut legend = Legend::new();
             let clauses = legend.clausify(&norm2);
-            println!("converted {} to {} CNF clauses", entry.name, clauses.len());
         }
     }
 }
