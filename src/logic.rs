@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::convert::TryInto;
 use std::fmt;
 
@@ -17,6 +18,25 @@ impl Term {
             Term::Constant(_) => 1,
             Term::Variable(_) => 1,
             Term::Function(_, ts) => ts.iter().map(|t| t.size()).sum::<u32>() + 1,
+        }
+    }
+
+    pub fn variables(&self) -> HashSet<String> {
+        let mut answer = HashSet::new();
+        match self {
+            Term::Constant(_) => answer,
+            Term::Variable(s) => {
+                answer.insert(s.to_string());
+                answer
+            }
+            Term::Function(_, ts) => {
+                for t in ts {
+                    for var in t.variables() {
+                        answer.insert(var);
+                    }
+                }
+                answer
+            }
         }
     }
 }
@@ -48,6 +68,11 @@ pub enum Formula {
     Xor(Box<Formula>, Box<Formula>),
     ForAll(String, Box<Formula>),
     Exists(String, Box<Formula>),
+}
+
+fn union(mut a: HashSet<String>, b: HashSet<String>) -> HashSet<String> {
+    a.extend(b);
+    a
 }
 
 impl Formula {
@@ -94,6 +119,29 @@ impl Formula {
             Formula::Xor(x1, x2) => x1.any(f) || x2.any(f),
             Formula::ForAll(_, x) => x.any(f),
             Formula::Exists(_, x) => x.any(f),
+        }
+    }
+
+    // Returns a set of all the unbound variables in this formula.
+    pub fn unbound(&self) -> HashSet<String> {
+        match self {
+            Formula::Atomic(t) => t.variables(),
+            Formula::And(f1, f2) => union(f1.unbound(), f2.unbound()),
+            Formula::Or(f1, f2) => union(f1.unbound(), f2.unbound()),
+            Formula::Not(f) => f.unbound(),
+            Formula::Implies(f1, f2) => union(f1.unbound(), f2.unbound()),
+            Formula::Iff(f1, f2) => union(f1.unbound(), f2.unbound()),
+            Formula::Xor(f1, f2) => union(f1.unbound(), f2.unbound()),
+            Formula::ForAll(s, f) => {
+                let mut u = f.unbound();
+                u.remove(s);
+                u
+            }
+            Formula::Exists(s, f) => {
+                let mut u = f.unbound();
+                u.remove(s);
+                u
+            }
         }
     }
 
