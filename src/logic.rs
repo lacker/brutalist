@@ -333,16 +333,19 @@ impl Legend {
                 }
             }
             Formula::ForAll(s, f) => {
-                // We need to convert this to prenex form, so assign s its own id for
+                // We need to convert this to prenex form, so assign s a new id for
                 // the subformula rooted here.
-                if varmap.contains_key(s) {
-                    panic!("nested use of variable name {}", s);
-                }
+                // The new id overrides any previous one, for this subtree.
+                // We save the previous id so we can restore it when we're done.
+                let previous_id = varmap.remove(s);
                 let id: u32 = self.variable_for_id.len().try_into().unwrap();
                 self.variable_for_id.push(s.to_string());
                 varmap.insert(s.to_string(), id);
                 self.clausify_aux(varmap, f, clauses);
-                varmap.remove(s);
+                match previous_id {
+                    Some(id) => varmap.insert(s.to_string(), id),
+                    None => varmap.remove(s),
+                };
             }
             _ => panic!("Invalid node type in clausify_aux"),
         }
