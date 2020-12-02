@@ -197,6 +197,7 @@ impl fmt::Display for Formula {
 #[derive(Clone)]
 pub struct Entry {
     pub name: String,
+    pub file: String,
     pub is_axiom: bool,
     pub formula: Formula,
 }

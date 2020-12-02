@@ -352,6 +352,7 @@ impl Loader {
                             if let Sexp::Atom(name) = &items[1] {
                                 entries.push(Entry {
                                     name: name.to_string(),
+                                    file: fname.to_string(),
                                     is_axiom,
                                     formula,
                                 });

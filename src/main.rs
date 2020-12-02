@@ -33,7 +33,7 @@ fn main() -> () {
 
     for (_, entries) in &loader.entries {
         for entry in entries {
-            println!("converting {}", entry.name);
+            println!("converting {} from {}", entry.name, entry.file);
 
             // Phase 1: negation normal form.
             let presize = entry.formula.size();
