@@ -53,7 +53,7 @@ fn main() -> () {
             }
 
             // Phase 3+4: CNF
-            let clauses = legend.clausify(&norm2);
+            let _clauses = legend.clausify(&norm2);
         }
     }
 }
