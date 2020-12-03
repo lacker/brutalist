@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::TryInto;
@@ -119,6 +121,20 @@ impl Formula {
             Formula::Xor(x1, x2) => x1.any(f) || x2.any(f),
             Formula::ForAll(_, x) => x.any(f),
             Formula::Exists(_, x) => x.any(f),
+        }
+    }
+
+    pub fn has_var(&self, s: &str) -> bool {
+        match self {
+            Formula::Atomic(t) => t.variables().contains(s),
+            Formula::And(f1, f2) => f1.has_var(s) || f2.has_var(s),
+            Formula::Or(f1, f2) => f1.has_var(s) || f2.has_var(s),
+            Formula::Not(f) => f.has_var(s),
+            Formula::Implies(f1, f2) => f1.has_var(s) || f2.has_var(s),
+            Formula::Iff(f1, f2) => f1.has_var(s) || f2.has_var(s),
+            Formula::Xor(f1, f2) => f1.has_var(s) || f2.has_var(s),
+            Formula::ForAll(v, f) => v == s || f.has_var(s),
+            Formula::Exists(v, f) => v == s || f.has_var(s),
         }
     }
 
@@ -310,7 +326,11 @@ impl Legend {
     // Allocates new ids for constants and functions if needed.
     // varmap determines how variables are turned into ids, and it's an error if we see
     // any variable that isn't in the varmap.
-    fn make_af(&mut self, varmap: &HashMap<String, u32>, term: &Term) -> AtomicFormula {
+    fn make_af(
+        &mut self,
+        varmap: &HashMap<String, u32>,
+        term: &Term,
+    ) -> Result<AtomicFormula, String> {
         match term {
             Term::Constant(s) => {
                 if !self.id_for_constant.contains_key(s) {
@@ -319,13 +339,15 @@ impl Legend {
                     self.constant_for_id.push(s.to_string());
                     self.id_for_constant.insert(s.to_string(), id);
                 }
-                AtomicFormula::Constant(*self.id_for_constant.get(s).unwrap())
+                Ok(AtomicFormula::Constant(
+                    *self.id_for_constant.get(s).unwrap(),
+                ))
             }
             Term::Variable(s) => {
                 let id: Option<&u32> = varmap.get(s);
                 match id {
-                    Some(i) => AtomicFormula::Variable(*i),
-                    None => panic!("no variable id found for {}", s),
+                    Some(i) => Ok(AtomicFormula::Variable(*i)),
+                    None => Err(format!("no variable id found for {}", s)),
                 }
             }
             Term::Function(s, terms) => {
@@ -338,9 +360,9 @@ impl Legend {
                 let f = *self.id_for_function.get(s).unwrap();
                 let mut subformulas = Vec::new();
                 for term in terms {
-                    subformulas.push(self.make_af(varmap, term));
+                    subformulas.push(self.make_af(varmap, term)?);
                 }
-                AtomicFormula::Function(f, subformulas)
+                Ok(AtomicFormula::Function(f, subformulas))
             }
         }
     }
@@ -352,16 +374,17 @@ impl Legend {
         varmap: &mut HashMap<String, u32>,
         formula: &Formula,
         clauses: &mut Vec<Clause>,
-    ) {
+    ) -> Result<(), String> {
+        let startlen = varmap.len();
         match formula {
             Formula::Atomic(t) => {
-                let af = self.make_af(varmap, t);
+                let af = self.make_af(varmap, t)?;
                 let clause = vec![Literal::Positive(af)];
                 clauses.push(clause);
             }
             Formula::Not(subf) => {
                 if let Formula::Atomic(t) = &**subf {
-                    let af = self.make_af(varmap, &t);
+                    let af = self.make_af(varmap, &t)?;
                     let clause = vec![Literal::Negative(af)];
                     clauses.push(clause);
                 } else {
@@ -370,20 +393,25 @@ impl Legend {
             }
             Formula::And(f1, f2) => {
                 // For an "and" node, you just concatenate the clauses from children.
-                self.clausify_aux(varmap, f1, clauses);
-                self.clausify_aux(varmap, f2, clauses);
+                self.clausify_aux(varmap, f1, clauses)?;
+                self.clausify_aux(varmap, f2, clauses)?;
             }
             Formula::Or(f1, f2) => {
                 // For an "or" node, you have to distribute and make |f1| * |f2| clauses.
+                // In some cases, this blows up. Probably only with problems perversely
+                // created to stump theorem-provers.
                 let mut left = Vec::new();
                 let mut right = Vec::new();
-                self.clausify_aux(varmap, f1, &mut left);
-                self.clausify_aux(varmap, f2, &mut right);
+                self.clausify_aux(varmap, f1, &mut left)?;
+                self.clausify_aux(varmap, f2, &mut right)?;
                 for a in left {
                     for b in &right {
                         let mut clause = a.clone();
                         clause.extend(b.clone());
                         clauses.push(clause);
+                        if clauses.len() > 20000 {
+                            panic!("too many clauses in a single formula, looks like exponential blowup");
+                        }
                     }
                 }
             }
@@ -396,14 +424,20 @@ impl Legend {
                 let id: u32 = self.variable_for_id.len().try_into().unwrap();
                 self.variable_for_id.push(s.to_string());
                 varmap.insert(s.to_string(), id);
-                self.clausify_aux(varmap, f, clauses);
+                self.clausify_aux(varmap, f, clauses)?;
                 match previous_id {
-                    Some(id) => varmap.insert(s.to_string(), id),
-                    None => varmap.remove(s),
+                    Some(i) => {
+                        varmap.insert(s.to_string(), i);
+                    }
+                    None => {
+                        varmap.remove(s);
+                    }
                 };
             }
             _ => panic!("Invalid node type in clausify_aux"),
         }
+        assert!(varmap.len() == startlen);
+        Ok(())
     }
 
     // Converts a formula to clausal normal form (CNF).
@@ -412,7 +446,9 @@ impl Legend {
     pub fn clausify(&mut self, formula: &Formula) -> Vec<Clause> {
         let mut varmap = HashMap::new();
         let mut clauses = Vec::new();
-        self.clausify_aux(&mut varmap, formula, &mut clauses);
+        if let Err(e) = self.clausify_aux(&mut varmap, formula, &mut clauses) {
+            panic!("clausify failed: {}", e);
+        }
         assert!(varmap.is_empty());
         clauses
     }

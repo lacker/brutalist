@@ -15,18 +15,18 @@ fn main() -> () {
 
     let mut loader = loader::Loader::new();
 
-    /*
     for name in names {
         let full = format!("tptp/FNE/{}", name);
         println!("loading {}", name);
         let entries = loader.get_entries(&full);
         println!("loaded {} from {}", entries.len(), full);
     }
-    */
 
+    /*
     // TODO: fix bug and remove this block
     let name = "tptp/FNE/LCL680+1.005.p";
     loader.get_entries(&name);
+    */
 
     // See http://www.cs.cmu.edu/~emc/15817-s12/lecture/20120425_vampire.pdf
     // for a description of the 4-step normalization process.
@@ -41,7 +41,6 @@ fn main() -> () {
     for (_, entries) in &loader.entries {
         for entry in entries {
             println!("converting {} from {}", entry.name, entry.file);
-            println!("XXX 1 {}", entry.formula.unbound().len());
 
             // Phase 1: negation normal form.
             let presize = entry.formula.size();
@@ -51,7 +50,6 @@ fn main() -> () {
             if postsize > 4 * presize {
                 println!("presize {} -> postsize {}", presize, postsize);
             }
-            println!("XXX 2 {}", norm1.unbound().len());
 
             // Phase 2: skolemizing
             let norm2 = sk.skolemize(&norm1);
@@ -60,10 +58,10 @@ fn main() -> () {
                 println!("norm2: {}", norm2);
                 panic!("bad skolemization");
             }
-            println!("XXX 3 {}", norm1.unbound().len());
 
             // Phase 3+4: CNF
-            let _clauses = legend.clausify(&norm2);
+            let clauses = legend.clausify(&norm2);
+            println!("converted into {} CNF clauses", clauses.len());
         }
     }
 }
