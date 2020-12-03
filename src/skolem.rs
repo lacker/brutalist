@@ -71,7 +71,11 @@ impl Skolemizer {
                 let ucount_prelen = self.ucount.len();
                 let rewrite_prelen = self.rewrite.len();
                 let nth: u32 = *self.ucount.get(s).unwrap_or(&0);
-                let name = format!("{}${}", s, nth);
+                let name = if nth > 0 {
+                    format!("{}${}", s, nth)
+                } else {
+                    s.to_string()
+                };
                 self.ucount.insert(s.to_string(), nth + 1);
                 self.universals.push(name.to_string());
                 let old_rewrite = self.rewrite.remove(s);

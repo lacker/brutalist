@@ -22,12 +22,6 @@ fn main() -> () {
         println!("loaded {} from {}", entries.len(), full);
     }
 
-    /*
-    // TODO: fix bug and remove this block
-    let name = "tptp/FNE/LCL680+1.005.p";
-    loader.get_entries(&name);
-    */
-
     // See http://www.cs.cmu.edu/~emc/15817-s12/lecture/20120425_vampire.pdf
     // for a description of the 4-step normalization process.
 
