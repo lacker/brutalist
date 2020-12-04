@@ -204,7 +204,7 @@ impl Formula {
     }
 
     // Simultaneously negate and convert into negation normal form.
-    fn negate_into_nnf(&self) -> Formula {
+    pub fn negate_into_nnf(&self) -> Formula {
         match self {
             Formula::Atomic(_) => Formula::Not(Box::new(self.clone())),
             Formula::And(f1, f2) => Formula::Or(

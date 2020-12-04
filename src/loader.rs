@@ -282,7 +282,10 @@ fn make_formula(input: &Sexp) -> Formula {
 }
 
 pub struct Loader {
+    // Maps each file to a list of entries in that file
     pub entries: HashMap<String, Vec<Entry>>,
+
+    // Maps each file to a list of other files it depends on
     dependencies: HashMap<String, Vec<String>>,
 }
 
