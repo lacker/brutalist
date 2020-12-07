@@ -28,15 +28,15 @@ impl ProblemSet {
     }
 
     pub fn load_dir(&mut self, dir: &str) {
-        let d = format!("tptp/{}/", dir);
-        let paths = fs::read_dir(d).unwrap();
+        let d = format!("tptp/{}", dir);
+        let paths = fs::read_dir(d.to_string()).unwrap();
         let mut names = paths
             .map(|p| String::from(p.unwrap().path().file_name().unwrap().to_str().unwrap()))
             .collect::<Vec<_>>();
         names.sort();
 
         for name in names {
-            let full = format!("tptp/FNE/{}", name);
+            let full = format!("{}/{}", d, name);
             self.loader.load_file(&full);
         }
     }
