@@ -1,6 +1,7 @@
 use crate::loader::*;
 use crate::logic::*;
 use crate::skolem::*;
+use std::collections::HashMap;
 use std::fs;
 
 mod loader;
@@ -11,6 +12,9 @@ struct ProblemSet {
     loader: Loader,
     skolemizer: Skolemizer,
     legend: Legend,
+
+    // Stored per-file
+    clauses: HashMap<String, Vec<Clause>>,
 }
 
 impl ProblemSet {
@@ -19,6 +23,7 @@ impl ProblemSet {
             loader: Loader::new(),
             skolemizer: Skolemizer::new(),
             legend: Legend::new(),
+            clauses: HashMap::new(),
         }
     }
 
@@ -42,9 +47,14 @@ impl ProblemSet {
     // for a description of the 4-step normalization process.
     // We also negate non-axioms, to prepare for proof by contradiction.
     pub fn normalize(&mut self) {
-        for (_, entries) in &self.loader.entries {
+        if self.clauses.len() > 0 {
+            panic!("you can only call normalize once");
+        }
+
+        for (fname, entries) in &self.loader.entries {
+            let mut clauses = Vec::new();
             for entry in entries {
-                println!("converting {} from {}", entry.name, entry.file);
+                // println!("converting {} from {}", entry.name, entry.file);
                 // Phase 1: negation normal form.
                 // Negate non-axioms.
                 let presize = entry.formula.size();
@@ -68,9 +78,10 @@ impl ProblemSet {
                 }
 
                 // Phase 3+4: CNF
-                let clauses = self.legend.clausify(&norm2);
-                println!("converted into {} CNF clauses", clauses.len());
+                self.legend.clausify(&norm2, &mut clauses);
             }
+            println!("converted {} into {} CNF clauses", fname, clauses.len());
+            self.clauses.insert(fname.to_string(), clauses);
         }
     }
 }

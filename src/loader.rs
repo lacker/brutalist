@@ -1,6 +1,7 @@
 use crate::logic::*;
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt;
@@ -283,7 +284,7 @@ fn make_formula(input: &Sexp) -> Formula {
 
 pub struct Loader {
     // Maps each file to a list of entries in that file
-    pub entries: HashMap<String, Vec<Entry>>,
+    pub entries: BTreeMap<String, Vec<Entry>>,
 
     // Maps each file to a list of other files it depends on
     dependencies: HashMap<String, Vec<String>>,
@@ -292,7 +293,7 @@ pub struct Loader {
 impl Loader {
     pub fn new() -> Loader {
         Loader {
-            entries: HashMap::new(),
+            entries: BTreeMap::new(),
             dependencies: HashMap::new(),
         }
     }

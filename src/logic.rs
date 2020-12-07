@@ -295,7 +295,7 @@ pub enum Literal {
     Negative(AtomicFormula),
 }
 
-type Clause = Vec<Literal>;
+pub type Clause = Vec<Literal>;
 
 pub struct Legend {
     // Each constant, variable, and function gets an integer id.
@@ -443,13 +443,11 @@ impl Legend {
     // Converts a formula to clausal normal form (CNF).
     // It should already be skolemized.
     // This also converts to prenex form.
-    pub fn clausify(&mut self, formula: &Formula) -> Vec<Clause> {
+    pub fn clausify(&mut self, formula: &Formula, clauses: &mut Vec<Clause>) {
         let mut varmap = HashMap::new();
-        let mut clauses = Vec::new();
-        if let Err(e) = self.clausify_aux(&mut varmap, formula, &mut clauses) {
+        if let Err(e) = self.clausify_aux(&mut varmap, formula, clauses) {
             panic!("clausify failed: {}", e);
         }
         assert!(varmap.is_empty());
-        clauses
     }
 }
