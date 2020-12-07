@@ -37,9 +37,7 @@ impl ProblemSet {
 
         for name in names {
             let full = format!("tptp/FNE/{}", name);
-            println!("loading {}", name);
-            let entries = self.loader.get_entries(&full);
-            println!("loaded {} from {}", entries.len(), full);
+            self.loader.load_file(&full);
         }
     }
 

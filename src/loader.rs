@@ -373,7 +373,7 @@ impl Loader {
     }
 
     // Filename is relative to the tptp directory.
-    fn load_file(&mut self, fname: &str) {
+    pub fn load_file(&mut self, fname: &str) {
         if self.entries.contains_key(fname) {
             // We already loaded this
             return;
@@ -397,23 +397,10 @@ impl Loader {
         // println!("deoperated is: {}", deo);
 
         self.load_sexp(fname, &deo);
-    }
-
-    // Appends all entries for a file, including dependencies
-    fn push_entries(&self, fname: &str, answer: &mut Vec<Entry>) {
-        for dep in self.dependencies.get(fname).unwrap() {
-            self.push_entries(dep, answer);
-        }
-        for entry in self.entries.get(fname).unwrap() {
-            answer.push(entry.clone());
-        }
-    }
-
-    // Gets all entries for a file, including dependencies
-    pub fn get_entries(&mut self, fname: &str) -> Vec<Entry> {
-        self.load_file(fname);
-        let mut answer = Vec::new();
-        self.push_entries(fname, &mut answer);
-        return answer;
+        println!(
+            "loaded {} entries from {}",
+            self.entries[fname].len(),
+            fname
+        );
     }
 }
