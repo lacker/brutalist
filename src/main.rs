@@ -96,7 +96,7 @@ impl ProblemSet {
 
 fn main() -> () {
     let mut ps = ProblemSet::new();
-    // ps.load_dir("FNE");
+    ps.load_dir("FNE");
     ps.load_dir("FNN");
     ps.normalize();
 }
