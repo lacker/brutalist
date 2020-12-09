@@ -379,6 +379,8 @@ impl Loader {
             return;
         }
 
+        println!("loading {}", fname);
+
         let mut file = fs::File::open(fname).expect(&format!("could not load {}", fname));
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
@@ -398,7 +400,7 @@ impl Loader {
 
         self.load_sexp(fname, &deo);
         println!(
-            "loaded {} entries from {}",
+            "  loaded {} entries from {}",
             self.entries[fname].len(),
             fname
         );
