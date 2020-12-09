@@ -1,7 +1,9 @@
 use crate::loader::*;
 use crate::logic::*;
 use crate::skolem::*;
+use rand::seq::SliceRandom;
 use std::collections::HashMap;
+use std::env;
 use std::fs;
 
 mod loader;
@@ -33,7 +35,15 @@ impl ProblemSet {
         let mut names = paths
             .map(|p| String::from(p.unwrap().path().file_name().unwrap().to_str().unwrap()))
             .collect::<Vec<_>>();
-        names.sort();
+
+        match env::var("SHUFFLE") {
+            Ok(_) => {
+                println!("shuffling load order...");
+                let mut rng = rand::thread_rng();
+                names.shuffle(&mut rng);
+            }
+            Err(_) => names.sort(),
+        };
 
         for name in names {
             let full = format!("{}/{}", d, name);
@@ -86,7 +96,7 @@ impl ProblemSet {
 
 fn main() -> () {
     let mut ps = ProblemSet::new();
-    ps.load_dir("FNE");
+    // ps.load_dir("FNE");
     ps.load_dir("FNN");
     ps.normalize();
 }
