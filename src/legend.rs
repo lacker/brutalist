@@ -1,8 +1,9 @@
-use crate::cnf::*;
-use crate::fol::*;
+use crate::cnf;
+use crate::fol;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
+// The legend tracks the string -> id mappings needed to correlate FOL and CNF formats.
 pub struct Legend {
     // Each constant, variable, and function gets an integer id.
     // For constants and functions, there is a unique id for each string.
@@ -28,35 +29,33 @@ impl Legend {
         }
     }
 
-    // Converts a term into an atomic formula.
+    // Converts a FOL term into a CNF term.
     // Allocates new ids for constants and functions if needed.
     // varmap determines how variables are turned into ids, and it's an error if we see
     // any variable that isn't in the varmap.
-    fn make_af(
+    fn make_term(
         &mut self,
         varmap: &HashMap<String, u32>,
-        term: &Term,
-    ) -> Result<AtomicFormula, String> {
+        term: &fol::Term,
+    ) -> Result<cnf::Term, String> {
         match term {
-            Term::Constant(s) => {
+            fol::Term::Constant(s) => {
                 if !self.id_for_constant.contains_key(s) {
                     // Allocate a new id for this constant
                     let id: u32 = self.constant_for_id.len().try_into().unwrap();
                     self.constant_for_id.push(s.to_string());
                     self.id_for_constant.insert(s.to_string(), id);
                 }
-                Ok(AtomicFormula::Constant(
-                    *self.id_for_constant.get(s).unwrap(),
-                ))
+                Ok(cnf::Term::Constant(*self.id_for_constant.get(s).unwrap()))
             }
-            Term::Variable(s) => {
+            fol::Term::Variable(s) => {
                 let id: Option<&u32> = varmap.get(s);
                 match id {
-                    Some(i) => Ok(AtomicFormula::Variable(*i)),
+                    Some(i) => Ok(cnf::Term::Variable(*i)),
                     None => Err(format!("no variable id found for {}", s)),
                 }
             }
-            Term::Function(s, terms) => {
+            fol::Term::Function(s, terms) => {
                 if !self.id_for_function.contains_key(s) {
                     // Allocate a new id for this function
                     let id: u32 = self.function_for_id.len().try_into().unwrap();
@@ -66,9 +65,9 @@ impl Legend {
                 let f = *self.id_for_function.get(s).unwrap();
                 let mut subformulas = Vec::new();
                 for term in terms {
-                    subformulas.push(self.make_af(varmap, term)?);
+                    subformulas.push(self.make_term(varmap, term)?);
                 }
-                Ok(AtomicFormula::Function(f, subformulas))
+                Ok(cnf::Term::Function(f, subformulas))
             }
         }
     }
@@ -78,31 +77,31 @@ impl Legend {
     fn clausify_aux(
         &mut self,
         varmap: &mut HashMap<String, u32>,
-        formula: &Formula,
-        clauses: &mut Vec<Clause>,
+        formula: &fol::Formula,
+        clauses: &mut Vec<cnf::Clause>,
     ) -> Result<(), String> {
         let startlen = varmap.len();
         match formula {
-            Formula::Atomic(t) => {
-                let af = self.make_af(varmap, t)?;
-                let clause = vec![Literal::Positive(af)];
+            fol::Formula::Atomic(t) => {
+                let af = self.make_term(varmap, t)?;
+                let clause = vec![cnf::Literal::Positive(af)];
                 clauses.push(clause);
             }
-            Formula::Not(subf) => {
-                if let Formula::Atomic(t) = &**subf {
-                    let af = self.make_af(varmap, &t)?;
-                    let clause = vec![Literal::Negative(af)];
+            fol::Formula::Not(subf) => {
+                if let fol::Formula::Atomic(t) = &**subf {
+                    let af = self.make_term(varmap, &t)?;
+                    let clause = vec![cnf::Literal::Negative(af)];
                     clauses.push(clause);
                 } else {
                     panic!("nots should be next to leaves");
                 }
             }
-            Formula::And(f1, f2) => {
+            fol::Formula::And(f1, f2) => {
                 // For an "and" node, you just concatenate the clauses from children.
                 self.clausify_aux(varmap, f1, clauses)?;
                 self.clausify_aux(varmap, f2, clauses)?;
             }
-            Formula::Or(f1, f2) => {
+            fol::Formula::Or(f1, f2) => {
                 // For an "or" node, you have to distribute and make |f1| * |f2| clauses.
                 // In some cases, this blows up. Probably only with problems perversely
                 // created to stump theorem-provers.
@@ -121,7 +120,7 @@ impl Legend {
                     }
                 }
             }
-            Formula::ForAll(s, f) => {
+            fol::Formula::ForAll(s, f) => {
                 // We need to convert this to prenex form, so assign s a new id for
                 // the subformula rooted here.
                 // The new id overrides any previous one, for this subtree.
@@ -149,7 +148,7 @@ impl Legend {
     // Converts a formula to clausal normal form (CNF).
     // It should already be skolemized.
     // This also converts to prenex form.
-    pub fn clausify(&mut self, formula: &Formula, clauses: &mut Vec<Clause>) {
+    pub fn clausify(&mut self, formula: &fol::Formula, clauses: &mut Vec<cnf::Clause>) {
         let mut varmap = HashMap::new();
         if let Err(e) = self.clausify_aux(&mut varmap, formula, clauses) {
             panic!("clausify failed: {}", e);

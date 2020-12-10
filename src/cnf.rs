@@ -4,19 +4,17 @@
 
 // Typically, in first-order logic, functions and predicates are different things.
 // Syntactically, they are essentially the same, so we treat them the same way.
-// This results in the strange nomenclature of atoms containing other atoms, a very
-// unatomic thing for them to do, but c'est la vie.
 #[derive(Clone)]
-pub enum AtomicFormula {
+pub enum Term {
     Constant(u32),
     Variable(u32),
-    Function(u32, Vec<AtomicFormula>),
+    Function(u32, Vec<Term>),
 }
 
 #[derive(Clone)]
 pub enum Literal {
-    Positive(AtomicFormula),
-    Negative(AtomicFormula),
+    Positive(Term),
+    Negative(Term),
 }
 
 pub type Clause = Vec<Literal>;
