@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 // This file describes how to represent statements in clausal normal form (CNF).
 // These data structures are designed for efficiency, using integer ids instead of
 // strings to specify constants, variables, and functions.
@@ -9,6 +10,16 @@ pub enum Term {
     Constant(u32),
     Variable(u32),
     Function(u32, Vec<Term>),
+}
+
+impl Term {
+    pub fn weight(&self) -> u32 {
+        match self {
+            Term::Constant(_) => 1,
+            Term::Variable(_) => 1,
+            Term::Function(_, terms) => terms.iter().map(|t| t.weight()).sum::<u32>() + 1,
+        }
+    }
 }
 
 #[derive(Clone)]
