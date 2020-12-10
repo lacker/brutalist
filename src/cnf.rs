@@ -41,6 +41,22 @@ impl Term {
         }
     }
 
+    pub fn sub_one(&self, v: u32, term: &Term) -> Term {
+        match self {
+            Term::Constant(_) => self.clone(),
+            Term::Variable(var) => {
+                if v == *var {
+                    term.clone()
+                } else {
+                    self.clone()
+                }
+            }
+            Term::Function(f, terms) => {
+                Term::Function(*f, terms.iter().map(|t| t.sub_one(v, term)).collect())
+            }
+        }
+    }
+
     pub fn sub(&self, s: &Substitution) -> Term {
         match self {
             Term::Constant(_) => self.clone(),
@@ -100,6 +116,7 @@ pub type Clause = Vec<Literal>;
 // A valid substitution must not have any terms that contain variables for which it also
 // has keys. In other words, applying the substitution should completely eliminate the variables
 // it is substituting out, not create new ones.
+// This ensures that applying a substitution is idempotent.
 pub struct Substitution {
     pub map: HashMap<u32, Term>,
 }
@@ -124,10 +141,72 @@ impl Substitution {
         }
     }
 
-    // Tries to unify the two provided terms, updating this substitution as necessary.
-    // Returns whether it was possible.
+    // Tries to unify the provided variable and term, updating the map as necessary.
+    // Returns whether we succeeded.
+    // If this operation fails, it leaves the substitution in an unusable state.
+    pub fn unify_variable(&mut self, var: u32, t: &Term) -> bool {
+        if let Some(old_term) = self.map.get(&var) {
+            // We already have a mapping for this variable, so make the two mappings agree.
+            let old_clone = old_term.clone();
+            return self.unify_terms(t, &old_clone);
+        }
+
+        if let Term::Variable(v) = t {
+            if *v == var {
+                // We are just asking to unify X with X, so it trivially succeeds.
+                return true;
+            }
+        }
+
+        // Create `term` whose variables do not overlap with ours at all.
+        let term = t.sub(self);
+        if term.contains_variable(var) {
+            // Adding this substitution would cause an infinitely recursive mapping.
+            return false;
+        }
+
+        // We need to expand all mentions of var in the old substitution mapping.
+        let mut new_map = HashMap::new();
+        for (v, old_term) in &self.map {
+            new_map.insert(*v, old_term.sub_one(var, &term));
+        }
+        new_map.insert(var, term);
+        self.map = new_map;
+        return true;
+    }
+
+    // Tries to unify the two provided terms, updating the map as necessary.
+    // Returns whether we succeeded.
+    // If this operation fails, it leaves the substitution in an unusable state.
     pub fn unify_terms(&mut self, term1: &Term, term2: &Term) -> bool {
-        // XXX
-        return false;
+        if let Term::Variable(v1) = term1 {
+            return self.unify_variable(*v1, term2);
+        }
+        if let Term::Variable(v2) = term2 {
+            return self.unify_variable(*v2, term1);
+        }
+        match term1 {
+            Term::Constant(c1) => match term2 {
+                Term::Constant(c2) => c1 == c2,
+                Term::Function(_, _) => false,
+                _ => panic!("control flow error"),
+            },
+            Term::Function(f1, ts1) => match term2 {
+                Term::Constant(_) => false,
+                Term::Function(f2, ts2) => {
+                    if f1 != f2 || ts1.len() != ts2.len() {
+                        return false;
+                    }
+                    for (t1, t2) in ts1.iter().zip(ts2.iter()) {
+                        if !self.unify_terms(t1, t2) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                _ => panic!("control flow error"),
+            },
+            _ => panic!("control flow error"),
+        }
     }
 }
