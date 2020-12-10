@@ -1,13 +1,16 @@
+use crate::cnf::*;
+use crate::legend::*;
 use crate::loader::*;
-use crate::logic::*;
 use crate::skolem::*;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 
+mod cnf;
+mod fol;
+mod legend;
 mod loader;
-mod logic;
 mod skolem;
 
 struct ProblemSet {

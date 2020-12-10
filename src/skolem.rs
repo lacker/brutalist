@@ -1,4 +1,4 @@
-use crate::logic::*;
+use crate::fol::*;
 use std::collections::HashMap;
 
 pub struct Skolemizer {
