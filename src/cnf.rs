@@ -8,7 +8,7 @@ use std::fmt;
 
 // Typically, in first-order logic, functions and predicates are different things.
 // Syntactically, they are essentially the same, so we treat them the same way.
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum Term {
     Constant(u32),
     Variable(u32),
@@ -21,6 +21,15 @@ impl Term {
             Term::Constant(_) => 1,
             Term::Variable(_) => 1,
             Term::Function(_, terms) => terms.iter().map(|t| t.weight()).sum::<u32>() + 1,
+        }
+    }
+
+    // An expression is "ground" if it contains no variables.
+    pub fn is_ground(&self) -> bool {
+        match self {
+            Term::Constant(_) => true,
+            Term::Variable(_) => false,
+            Term::Function(_, terms) => terms.iter().all(|t| t.is_ground()),
         }
     }
 
@@ -63,7 +72,7 @@ impl fmt::Display for Term {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum Literal {
     Positive(Term),
     Negative(Term),
@@ -113,5 +122,12 @@ impl Substitution {
                 }
             }
         }
+    }
+
+    // Tries to unify the two provided terms, updating this substitution as necessary.
+    // Returns whether it was possible.
+    pub fn unify_terms(&mut self, term1: &Term, term2: &Term) -> bool {
+        // XXX
+        return false;
     }
 }
