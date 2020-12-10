@@ -28,4 +28,13 @@ pub enum Literal {
     Negative(Term),
 }
 
+impl Literal {
+    pub fn weight(&self) -> u32 {
+        match self {
+            Literal::Positive(t) => t.weight(),
+            Literal::Negative(t) => t.weight(),
+        }
+    }
+}
+
 pub type Clause = Vec<Literal>;
