@@ -31,6 +31,19 @@ impl Term {
             Term::Function(_, terms) => terms.iter().any(|t| t.contains_variable(v)),
         }
     }
+
+    pub fn sub(&self, s: &Substitution) -> Term {
+        match self {
+            Term::Constant(_) => self.clone(),
+            Term::Variable(v) => match s.map.get(v) {
+                Some(term) => term.clone(),
+                None => self.clone(),
+            },
+            Term::Function(f, terms) => {
+                Term::Function(*f, terms.iter().map(|t| t.sub(s)).collect())
+            }
+        }
+    }
 }
 
 impl fmt::Display for Term {
@@ -61,6 +74,13 @@ impl Literal {
         match self {
             Literal::Positive(t) => t.weight(),
             Literal::Negative(t) => t.weight(),
+        }
+    }
+
+    pub fn sub(&self, s: &Substitution) -> Literal {
+        match self {
+            Literal::Positive(t) => Literal::Positive(t.sub(s)),
+            Literal::Negative(t) => Literal::Negative(t.sub(s)),
         }
     }
 }
