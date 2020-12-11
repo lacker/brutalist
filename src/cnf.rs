@@ -110,8 +110,6 @@ impl Literal {
     }
 }
 
-pub type Clause = Vec<Literal>;
-
 // A Substitution maps variables to terms.
 // A valid substitution must not have any terms that contain variables for which it also
 // has keys. In other words, applying the substitution should completely eliminate the variables
@@ -208,5 +206,32 @@ impl Substitution {
             },
             _ => panic!("control flow error"),
         }
+    }
+}
+
+// A clause in CNF form is understood to be a disjunction (an "or") of literals.
+#[derive(Clone)]
+pub struct Clause {
+    pub literals: Vec<Literal>,
+}
+
+impl Clause {
+    pub fn new(literals: Vec<Literal>) -> Clause {
+        Clause { literals }
+    }
+
+    pub fn new_positive(term: Term) -> Clause {
+        Clause::new(vec![Literal::Positive(term)])
+    }
+
+    pub fn new_negative(term: Term) -> Clause {
+        Clause::new(vec![Literal::Negative(term)])
+    }
+
+    // "or"s this with another clause.
+    pub fn combine(&self, other: &Clause) -> Clause {
+        let mut lits = self.literals.clone();
+        lits.extend(other.literals.clone());
+        Clause::new(lits)
     }
 }

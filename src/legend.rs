@@ -84,14 +84,12 @@ impl Legend {
         match formula {
             fol::Formula::Atomic(t) => {
                 let af = self.make_term(varmap, t)?;
-                let clause = vec![cnf::Literal::Positive(af)];
-                clauses.push(clause);
+                clauses.push(cnf::Clause::new_positive(af));
             }
             fol::Formula::Not(subf) => {
                 if let fol::Formula::Atomic(t) = &**subf {
                     let af = self.make_term(varmap, &t)?;
-                    let clause = vec![cnf::Literal::Negative(af)];
-                    clauses.push(clause);
+                    clauses.push(cnf::Clause::new_negative(af));
                 } else {
                     panic!("nots should be next to leaves");
                 }
@@ -111,11 +109,9 @@ impl Legend {
                 self.clausify_aux(varmap, f2, &mut right)?;
                 for a in left {
                     for b in &right {
-                        let mut clause = a.clone();
-                        clause.extend(b.clone());
-                        clauses.push(clause);
+                        clauses.push(a.combine(b));
                         if clauses.len() > 20000 {
-                            panic!("too many clauses in a single formula, looks like exponential blowup");
+                            panic!("too many clauses in a single formula");
                         }
                     }
                 }
