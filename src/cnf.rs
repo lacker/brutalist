@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -8,7 +9,8 @@ use std::fmt;
 
 // Typically, in first-order logic, functions and predicates are different things.
 // Syntactically, they are essentially the same, so we treat them the same way.
-#[derive(Clone, Eq, PartialEq)]
+// Note that term comparison is derived and thus not mathematically meaningful.
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Term {
     Constant(u32),
     Variable(u32),
@@ -88,7 +90,8 @@ impl fmt::Display for Term {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+// Literals are ordered by weight, with essentially arbitrary tiebreaking of term ordering.
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub enum Literal {
     Positive(Term),
     Negative(Term),
@@ -107,6 +110,41 @@ impl Literal {
             Literal::Positive(t) => Literal::Positive(t.sub(s)),
             Literal::Negative(t) => Literal::Negative(t.sub(s)),
         }
+    }
+
+    pub fn is_positive(&self) -> bool {
+        match self {
+            Literal::Positive(_) => true,
+            Literal::Negative(_) => false,
+        }
+    }
+
+    pub fn term(&self) -> &Term {
+        match self {
+            Literal::Positive(t) => t,
+            Literal::Negative(t) => t,
+        }
+    }
+}
+
+// Literal comparison is by weight first, and only uses term comparison for tiebreaks.
+impl Ord for Literal {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let cmp1 = self.weight().cmp(&other.weight());
+        if cmp1 != Ordering::Equal {
+            return cmp1;
+        }
+        let cmp2 = self.is_positive().cmp(&other.is_positive());
+        if cmp2 != Ordering::Equal {
+            return cmp2;
+        }
+        return self.term().cmp(other.term());
+    }
+}
+
+impl PartialOrd for Literal {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
