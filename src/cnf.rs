@@ -232,6 +232,7 @@ impl Substitution {
                         Err(())
                     }
                 }
+                _ => Err(()),
             },
         }
     }
@@ -267,8 +268,32 @@ impl Clause {
         self.literals.is_empty()
     }
 
+    // Simultaneously applies the given substitution and removes the remove'th clause.
+    pub fn subremove(&self, s: &Substitution, remove: usize) -> Clause {
+        let mut lits = Vec::new();
+        for (i, lit) in self.literals.iter().enumerate() {
+            if i == remove {
+                continue;
+            }
+            lits.push(lit.sub(s));
+        }
+        Clause::new(lits)
+    }
+
     // Find all clauses that can be produced from this one via factoring.
+    // See "Selecting the Selection" page 4
     pub fn factor(&self) -> Vec<Clause> {
-        panic!("XXX TODO");
+        let mut answer = Vec::new();
+        for (i1, lit1) in self.literals.iter().enumerate() {
+            let start = i1 + 1;
+            for (offset, lit2) in self.literals[start..].iter().enumerate() {
+                let i2 = start + offset;
+                match Substitution::unify_literals(lit1, lit2) {
+                    Ok(sub) => answer.push(self.subremove(&sub, i2)),
+                    Err(_) => (),
+                }
+            }
+        }
+        return answer;
     }
 }
