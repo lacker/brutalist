@@ -277,22 +277,28 @@ impl Substitution {
 }
 
 // A clause in CNF form is understood to be a disjunction (an "or") of literals.
-#[derive(Clone)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub struct Clause {
     pub literals: Vec<Literal>,
 }
 
 impl Clause {
     pub fn new(literals: Vec<Literal>) -> Clause {
-        Clause { literals }
+        let mut c = Clause { literals };
+        c.literals.sort();
+        c
     }
 
     pub fn new_positive(term: Term) -> Clause {
-        Clause::new(vec![Literal::Positive(term)])
+        Clause {
+            literals: vec![Literal::Positive(term)],
+        }
     }
 
     pub fn new_negative(term: Term) -> Clause {
-        Clause::new(vec![Literal::Negative(term)])
+        Clause {
+            literals: vec![Literal::Negative(term)],
+        }
     }
 
     // "or"s this with another clause.
