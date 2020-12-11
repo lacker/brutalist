@@ -207,6 +207,34 @@ impl Substitution {
             _ => panic!("control flow error"),
         }
     }
+
+    // Tries to unify the provided two literals.
+    // Creates a Substitution object iff it succeeds.
+    pub fn unify_literals(lit1: &Literal, lit2: &Literal) -> Result<Substitution, ()> {
+        match lit1 {
+            Literal::Positive(term1) => match lit2 {
+                Literal::Positive(term2) => {
+                    let mut sub = Substitution::new();
+                    if sub.unify_terms(term1, term2) {
+                        Ok(sub)
+                    } else {
+                        Err(())
+                    }
+                }
+                _ => Err(()),
+            },
+            Literal::Negative(term1) => match lit2 {
+                Literal::Negative(term2) => {
+                    let mut sub = Substitution::new();
+                    if sub.unify_terms(term1, term2) {
+                        Ok(sub)
+                    } else {
+                        Err(())
+                    }
+                }
+            },
+        }
+    }
 }
 
 // A clause in CNF form is understood to be a disjunction (an "or") of literals.
@@ -233,5 +261,14 @@ impl Clause {
         let mut lits = self.literals.clone();
         lits.extend(other.literals.clone());
         Clause::new(lits)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.literals.is_empty()
+    }
+
+    // Find all clauses that can be produced from this one via factoring.
+    pub fn factor(&self) -> Vec<Clause> {
+        panic!("XXX TODO");
     }
 }
