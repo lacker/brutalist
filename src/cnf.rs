@@ -96,6 +96,11 @@ impl Term {
             }
         }
     }
+
+    pub fn new(s: &str) -> Term {
+        let sexp = Sexp::new(s);
+        Term::read_sexp(&sexp)
+    }
 }
 
 impl fmt::Display for Term {
@@ -148,6 +153,23 @@ impl Literal {
         match self {
             Literal::Positive(t) => t,
             Literal::Negative(t) => t,
+        }
+    }
+
+    fn read_sexp(sexp: &Sexp) -> Literal {
+        match sexp {
+            Sexp::Atom(_) => Literal::Positive(Term::read_sexp(sexp)),
+            Sexp::List(list) => {
+                if let Sexp::Atom(pred) = &list[0] {
+                    if pred == "-" {
+                        Literal::Negative(Term::read_sexp(&list[1]))
+                    } else {
+                        panic!("unrecognized predicate: {}", pred)
+                    }
+                } else {
+                    panic!("bad literal sexp: {}", sexp)
+                }
+            }
         }
     }
 }
