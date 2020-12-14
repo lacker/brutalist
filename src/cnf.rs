@@ -76,15 +76,15 @@ impl Term {
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Term::Constant(c) => write!(f, "c{}", c),
-            Term::Variable(v) => write!(f, "v{}", v),
+            Term::Constant(c) => write!(f, "K{}", c),
+            Term::Variable(v) => write!(f, "X{}", v),
             Term::Function(func, terms) => {
                 let sub = terms
                     .iter()
                     .map(|t| t.to_string())
                     .collect::<Vec<_>>()
-                    .join(", ");
-                write!(f, "f{}({})", func, sub)
+                    .join(" ");
+                write!(f, "(F{} {})", func, sub)
             }
         }
     }
