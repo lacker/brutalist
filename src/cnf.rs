@@ -170,6 +170,11 @@ impl Literal {
         }
         Literal::Positive(Term::read_sexp(sexp))
     }
+
+    fn new(s: &str) -> Literal {
+        let sexp = Sexp::new(s);
+        Literal::read_sexp(&sexp)
+    }
 }
 
 // Literal comparison is by weight first, and only uses term comparison for tiebreaks.
@@ -395,5 +400,12 @@ mod tests {
     fn test_new() {
         let term = Term::new("(f1 X2 k3)");
         assert!(term.weight() == 3);
+        assert!(!term.contains_variable(1));
+        assert!(term.contains_variable(2));
+        assert!(!term.contains_variable(3));
+
+        let lit = Literal::new("-X3");
+        assert!(!lit.is_positive());
+        assert!(lit.weight() == 1);
     }
 }
