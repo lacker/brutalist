@@ -100,7 +100,7 @@ impl Term {
         }
     }
 
-    pub fn new(s: &str) -> Term {
+    pub fn read(s: &str) -> Term {
         let sexp = Sexp::new(s);
         Term::read_sexp(&sexp)
     }
@@ -171,7 +171,7 @@ impl Literal {
         Literal::Positive(Term::read_sexp(sexp))
     }
 
-    fn new(s: &str) -> Literal {
+    fn read(s: &str) -> Literal {
         let sexp = Sexp::new(s);
         Literal::read_sexp(&sexp)
     }
@@ -390,6 +390,22 @@ impl Clause {
         }
         return answer;
     }
+
+    fn read_sexp(sexp: &Sexp) -> Clause {
+        match sexp {
+            Sexp::Atom(_) => Clause {
+                literals: vec![Literal::read_sexp(sexp)],
+            },
+            Sexp::List(list) => Clause {
+                literals: list.iter().map(|s| Literal::read_sexp(s)).collect(),
+            },
+        }
+    }
+
+    fn read(s: &str) -> Clause {
+        let sexp = Sexp::new(s);
+        Clause::read_sexp(&sexp)
+    }
 }
 
 #[cfg(test)]
@@ -398,13 +414,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let term = Term::new("(f1 X2 k3)");
+        let term = Term::read("(f1 X2 k3)");
         assert!(term.weight() == 3);
         assert!(!term.contains_variable(1));
         assert!(term.contains_variable(2));
         assert!(!term.contains_variable(3));
 
-        let lit = Literal::new("-X3");
+        let lit = Literal::read("-X3");
         assert!(!lit.is_positive());
         assert!(lit.weight() == 1);
     }
