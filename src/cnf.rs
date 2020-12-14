@@ -85,7 +85,10 @@ impl Term {
                 _ => panic!("bad term: {}", s),
             },
             Sexp::List(list) => {
-                if let Sexp::Atom(fstr) = &list[0] {
+                if list.len() == 1 {
+                    // Treat ((x y)) like (x y)
+                    Term::read_sexp(&list[0])
+                } else if let Sexp::Atom(fstr) = &list[0] {
                     assert!(fstr.chars().next().unwrap() == FUNCTION);
                     let id = fstr[1..].parse::<u32>().unwrap();
                     let terms = list[1..].iter().map(|s| Term::read_sexp(s)).collect();
@@ -381,5 +384,16 @@ impl Clause {
             }
         }
         return answer;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let term = Term::new("(f1 X2 k3)");
+        assert!(term.weight() == 3);
     }
 }
