@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::sexp::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
@@ -6,6 +7,10 @@ use std::fmt;
 // This file describes how to represent statements in clausal normal form (CNF).
 // These data structures are designed for efficiency, using integer ids instead of
 // strings to specify constants, variables, and functions.
+
+const CONSTANT: char = 'k';
+const VARIABLE: char = 'X';
+const FUNCTION: char = 'f';
 
 // Typically, in first-order logic, functions and predicates are different things.
 // Syntactically, they are essentially the same, so we treat them the same way.
@@ -68,6 +73,26 @@ impl Term {
             },
             Term::Function(f, terms) => {
                 Term::Function(*f, terms.iter().map(|t| t.sub(s)).collect())
+            }
+        }
+    }
+
+    fn read_sexp(sexp: &Sexp) -> Term {
+        match sexp {
+            Sexp::Atom(s) => match s.chars().next().unwrap() {
+                CONSTANT => Term::Constant(s[1..].parse::<u32>().unwrap()),
+                VARIABLE => Term::Variable(s[1..].parse::<u32>().unwrap()),
+                _ => panic!("bad term: {}", s),
+            },
+            Sexp::List(list) => {
+                if let Sexp::Atom(fstr) = &list[0] {
+                    assert!(fstr.chars().next().unwrap() == FUNCTION);
+                    let id = fstr[1..].parse::<u32>().unwrap();
+                    let terms = list[1..].iter().map(|s| Term::read_sexp(s)).collect();
+                    Term::Function(id, terms)
+                } else {
+                    panic!("bad first list element in {}", sexp);
+                }
             }
         }
     }
