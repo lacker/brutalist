@@ -157,20 +157,15 @@ impl Literal {
     }
 
     fn read_sexp(sexp: &Sexp) -> Literal {
-        match sexp {
-            Sexp::Atom(_) => Literal::Positive(Term::read_sexp(sexp)),
-            Sexp::List(list) => {
-                if let Sexp::Atom(pred) = &list[0] {
-                    if pred == "-" {
-                        Literal::Negative(Term::read_sexp(&list[1]))
-                    } else {
-                        panic!("unrecognized predicate: {}", pred)
-                    }
-                } else {
-                    panic!("bad literal sexp: {}", sexp)
+        if let Sexp::List(list) = sexp {
+            if let Sexp::Atom(pred) = &list[0] {
+                if pred == "-" {
+                    assert!(list.len() == 2);
+                    return Literal::Negative(Term::read_sexp(&list[1]));
                 }
             }
         }
+        Literal::Positive(Term::read_sexp(sexp))
     }
 }
 
