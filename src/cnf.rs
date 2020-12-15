@@ -108,15 +108,15 @@ impl Term {
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Term::Constant(c) => write!(f, "K{}", c),
-            Term::Variable(v) => write!(f, "X{}", v),
+            Term::Constant(c) => write!(f, "{}{}", CONSTANT, c),
+            Term::Variable(v) => write!(f, "{}{}", VARIABLE, v),
             Term::Function(func, terms) => {
                 let sub = terms
                     .iter()
                     .map(|t| t.to_string())
                     .collect::<Vec<_>>()
                     .join(" ");
-                write!(f, "(F{} {})", func, sub)
+                write!(f, "({}{} {})", FUNCTION, func, sub)
             }
         }
     }
@@ -173,6 +173,15 @@ impl Literal {
     fn read(s: &str) -> Literal {
         let sexp = Sexp::new(s);
         Literal::read_sexp(&sexp)
+    }
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Literal::Positive(t) => write!(f, "{}", t),
+            Literal::Negative(t) => write!(f, "(- {})", t),
+        }
     }
 }
 
@@ -264,21 +273,24 @@ impl Substitution {
     // Returns whether we succeeded.
     // If this operation fails, it leaves the substitution in an unusable state.
     pub fn unify_terms(&mut self, term1: &Term, term2: &Term) -> bool {
-        if let Term::Variable(v1) = term1 {
-            return self.unify_variable(*v1, term2);
-        }
+        // The simple case is when one side is a variable.
+        // Try replacing the second variable first so that if both are variables, we
+        // keep around the lower one, which is generally the direction that heuristics go.
         if let Term::Variable(v2) = term2 {
             return self.unify_variable(*v2, term1);
         }
+
         match term1 {
-            Term::Constant(c1) => match term2 {
-                Term::Constant(c2) => c1 == c2,
-                Term::Function(_, _) => false,
-                _ => panic!("control flow error"),
-            },
-            Term::Function(f1, ts1) => match term2 {
-                Term::Constant(_) => false,
-                Term::Function(f2, ts2) => {
+            Term::Variable(v1) => self.unify_variable(*v1, term2),
+            Term::Constant(c1) => {
+                // Constants only unify when they are the same
+                if let Term::Constant(c2) = term2 {
+                    return c1 == c2;
+                }
+                false
+            }
+            Term::Function(f1, ts1) => {
+                if let Term::Function(f2, ts2) = term2 {
                     if f1 != f2 || ts1.len() != ts2.len() {
                         return false;
                     }
@@ -289,9 +301,8 @@ impl Substitution {
                     }
                     return true;
                 }
-                _ => panic!("control flow error"),
-            },
-            _ => panic!("control flow error"),
+                false
+            }
         }
     }
 
@@ -411,6 +422,17 @@ impl Clause {
     }
 }
 
+impl fmt::Display for Clause {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let parts = self
+            .literals
+            .iter()
+            .map(|lit| lit.to_string())
+            .collect::<Vec<_>>();
+        write!(f, "{}", parts.join(" "))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -418,17 +440,25 @@ mod tests {
     #[test]
     fn test_new() {
         let term = Term::read("f1 X2 k3");
-        assert!(term.weight() == 3);
+        assert_eq!(term.weight(), 3);
         assert!(!term.contains_variable(1));
         assert!(term.contains_variable(2));
         assert!(!term.contains_variable(3));
 
         let lit = Literal::read("-X3");
         assert!(!lit.is_positive());
-        assert!(lit.weight() == 1);
+        assert_eq!(lit.weight(), 1);
 
         let c = Clause::read("X1 (f1 (f2 X2)) (-X3) (-X4)");
-        assert!(c.literals.len() == 4);
+        assert_eq!(c.literals.len(), 4);
         assert!(c.weight() == 6);
+    }
+
+    #[test]
+    fn test_factoring() {
+        let clause = Clause::read("(f1 X1) (f1 X2)");
+        let new_clauses = clause.factor();
+        assert_eq!(new_clauses.len(), 1);
+        assert_eq!(new_clauses[0].to_string(), "(f1 X1)");
     }
 }
