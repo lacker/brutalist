@@ -174,6 +174,19 @@ impl Literal {
         let sexp = Sexp::new(s);
         Literal::read_sexp(&sexp)
     }
+
+    fn align<'a>(&self, other: &'a Literal) -> (&Term, &'a Term, bool) {
+        match self {
+            Literal::Positive(t1) => match other {
+                Literal::Positive(t2) => (t1, t2, true),
+                Literal::Negative(t2) => (t1, t2, false),
+            },
+            Literal::Negative(t1) => match other {
+                Literal::Positive(t2) => (t1, t2, false),
+                Literal::Negative(t2) => (t1, t2, true),
+            },
+        }
+    }
 }
 
 impl fmt::Display for Literal {
@@ -309,29 +322,15 @@ impl Substitution {
     // Tries to unify the provided two literals.
     // Creates a Substitution object iff it succeeds.
     pub fn unify_literals(lit1: &Literal, lit2: &Literal) -> Result<Substitution, ()> {
-        match lit1 {
-            Literal::Positive(term1) => match lit2 {
-                Literal::Positive(term2) => {
-                    let mut sub = Substitution::new();
-                    if sub.unify_terms(term1, term2) {
-                        Ok(sub)
-                    } else {
-                        Err(())
-                    }
-                }
-                _ => Err(()),
-            },
-            Literal::Negative(term1) => match lit2 {
-                Literal::Negative(term2) => {
-                    let mut sub = Substitution::new();
-                    if sub.unify_terms(term1, term2) {
-                        Ok(sub)
-                    } else {
-                        Err(())
-                    }
-                }
-                _ => Err(()),
-            },
+        let (t1, t2, aligned) = lit1.align(lit2);
+        if !aligned {
+            return Err(());
+        }
+        let mut sub = Substitution::new();
+        if sub.unify_terms(t1, t2) {
+            Ok(sub)
+        } else {
+            Err(())
         }
     }
 }
@@ -402,7 +401,23 @@ impl Clause {
                 }
             }
         }
-        return answer;
+        answer
+    }
+
+    // Find all clauses that can be produced from these two via resolution.
+    // See "Selecting the Selection" page 4
+    pub fn resolve(&self, other: &Clause) -> Vec<Clause> {
+        let mut answer = Vec::new();
+        for (i1, lit1) in self.literals.iter().enumerate() {
+            for (i2, lit2) in other.literals.iter().enumerate() {
+                let (t1, t2, aligned) = lit1.align(lit2);
+                if aligned {
+                    continue;
+                }
+                panic!("XXX");
+            }
+        }
+        answer
     }
 
     fn read_sexp(sexp: &Sexp) -> Clause {
