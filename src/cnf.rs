@@ -412,9 +412,16 @@ impl Clause {
             for (i2, lit2) in other.literals.iter().enumerate() {
                 let (t1, t2, aligned) = lit1.align(lit2);
                 if aligned {
+                    // Resolution works with oppositely-signed literals
                     continue;
                 }
-                panic!("XXX");
+                let mut sub = Substitution::new();
+                if !sub.unify_terms(t1, t2) {
+                    continue;
+                }
+                let part1 = self.subremove(&sub, i1);
+                let part2 = other.subremove(&sub, i2);
+                answer.push(part1.combine(&part2));
             }
         }
         answer
