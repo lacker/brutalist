@@ -85,11 +85,10 @@ impl Term {
                 _ => panic!("bad term: {}", s),
             },
             Sexp::List(list) => {
-                if list.len() == 1 {
-                    // Treat ((x y)) like (x y)
-                    Term::read_sexp(&list[0])
-                } else if let Sexp::Atom(fstr) = &list[0] {
-                    assert!(fstr.chars().next().unwrap() == FUNCTION);
+                if let Sexp::Atom(fstr) = &list[0] {
+                    if fstr.chars().next().unwrap() != FUNCTION {
+                        panic!("unexpected list[0] in {}", sexp);
+                    }
                     let id = fstr[1..].parse::<u32>().unwrap();
                     let terms = list[1..].iter().map(|s| Term::read_sexp(s)).collect();
                     Term::Function(id, terms)
@@ -339,6 +338,10 @@ impl Clause {
         c
     }
 
+    pub fn weight(&self) -> u32 {
+        self.literals.iter().map(|lit| lit.weight()).sum()
+    }
+
     pub fn new_positive(term: Term) -> Clause {
         Clause {
             literals: vec![Literal::Positive(term)],
@@ -414,7 +417,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let term = Term::read("(f1 X2 k3)");
+        let term = Term::read("f1 X2 k3");
         assert!(term.weight() == 3);
         assert!(!term.contains_variable(1));
         assert!(term.contains_variable(2));
@@ -423,5 +426,9 @@ mod tests {
         let lit = Literal::read("-X3");
         assert!(!lit.is_positive());
         assert!(lit.weight() == 1);
+
+        let c = Clause::read("X1 (f1 (f2 X2)) (-X3) (-X4)");
+        assert!(c.literals.len() == 4);
+        assert!(c.weight() == 6);
     }
 }

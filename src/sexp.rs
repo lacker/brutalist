@@ -48,6 +48,8 @@ impl Sexp {
             || self.eq_atom("|");
     }
 
+    // Note: this reads an s-expression that has the top level parentheses omitted.
+    // So it returns a list no matter what.
     pub fn new(s: &str) -> Sexp {
         let tokens = tokenize(s);
         deparenthesize(tokens)
@@ -76,8 +78,7 @@ fn tokenize(text: &str) -> Vec<&str> {
     RE.find_iter(text).map(|m| m.as_str()).collect()
 }
 
-// Converts each pair of parentheses, as well as the overall expression, into a list-type
-// s-expression.
+// Converts each pair of parentheses into a list-type s-expression.
 // Panics with unmatched parentheses.
 fn deparenthesize(tokens: Vec<&str>) -> Sexp {
     let mut answer: Vec<Sexp> = Vec::new();
