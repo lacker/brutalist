@@ -483,4 +483,16 @@ mod tests {
         assert_eq!(new_clauses.len(), 1);
         assert_eq!(new_clauses[0].to_string(), "(f1 X1)");
     }
+
+    #[test]
+    fn test_resolution() {
+        let c1 = Clause::read("(f1 X1) (-(f2 X1))");
+        let c2 = Clause::read("(f2 k1) k2");
+        let new_clauses = c1.resolve(&c2);
+        for c in &new_clauses {
+            println!("{}", c);
+        }
+        assert_eq!(new_clauses.len(), 1);
+        assert_eq!(new_clauses[0].to_string(), "k2 (f1 k1)");
+    }
 }
