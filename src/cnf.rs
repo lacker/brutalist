@@ -438,7 +438,7 @@ impl Clause {
         }
     }
 
-    fn read(s: &str) -> Clause {
+    pub fn read(s: &str) -> Clause {
         let sexp = Sexp::new(s);
         Clause::read_sexp(&sexp)
     }

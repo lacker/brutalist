@@ -22,6 +22,11 @@ impl Prover {
             seen: HashSet::new(),
         }
     }
+
+    pub fn insert(&mut self, c: Clause) {
+        self.seen.insert(c.clone());
+        self.passive.push(Reverse(c));
+    }
 }
 
 #[cfg(test)]
@@ -29,7 +34,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new() {
-        Prover::new();
+    fn test_prove() {
+        let mut p = Prover::new();
+        p.insert(Clause::read("(f1 X1) (-(f2 X1))"));
     }
 }
