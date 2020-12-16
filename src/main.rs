@@ -11,6 +11,7 @@ mod cnf;
 mod fol;
 mod legend;
 mod loader;
+mod prover;
 mod sexp;
 mod skolem;
 
