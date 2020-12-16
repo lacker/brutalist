@@ -198,7 +198,7 @@ impl fmt::Display for Literal {
     }
 }
 
-// Literal comparison is by weight first, and only uses term comparison for tiebreaks.
+// Literal comparison is by weight first, then by sign, then finally by term comparison.
 impl Ord for Literal {
     fn cmp(&self, other: &Self) -> Ordering {
         let cmp1 = self.weight().cmp(&other.weight());
@@ -452,6 +452,33 @@ impl fmt::Display for Clause {
             .map(|lit| lit.to_string())
             .collect::<Vec<_>>();
         write!(f, "{}", parts.join(" "))
+    }
+}
+
+// Clause comparison is by total weight first, then by number of literals, then lexicographical.
+impl Ord for Clause {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let cmp1 = self.weight().cmp(&other.weight());
+        if cmp1 != Ordering::Equal {
+            return cmp1;
+        }
+        let cmp2 = self.literals.len().cmp(&other.literals.len());
+        if cmp2 != Ordering::Equal {
+            return cmp2;
+        }
+        for (lit1, lit2) in self.literals.iter().zip(other.literals.iter()) {
+            let subcmp = lit1.cmp(lit2);
+            if subcmp != Ordering::Equal {
+                return subcmp;
+            }
+        }
+        Ordering::Equal
+    }
+}
+
+impl PartialOrd for Clause {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
