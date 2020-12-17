@@ -77,4 +77,13 @@ mod tests {
         p.insert(Clause::read("(- k2)"));
         assert!(p.prove());
     }
+
+    #[test]
+    fn test_cant_prove() {
+        let mut p = Prover::new();
+        p.insert(Clause::read("(f1 X1) (-(f2 X1))"));
+        p.insert(Clause::read("(f2 k1) k2"));
+        p.insert(Clause::read("(- (f1 X1)) (- (f2 X1))"));
+        assert!(!p.prove());
+    }
 }
