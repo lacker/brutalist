@@ -2,6 +2,7 @@ use crate::cnf::*;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::collections::HashSet;
+use std::time::Instant;
 
 macro_rules! debug {
     ($self:ident, $($x:expr),*) => {
@@ -42,7 +43,12 @@ impl Prover {
     }
 
     pub fn prove(&mut self) -> bool {
+        let now = Instant::now();
         loop {
+            if now.elapsed().as_secs() > 10 {
+                // Out of time
+                return false;
+            }
             if let Some(Reverse(c)) = self.passive.pop() {
                 if c.literals.len() == 0 {
                     return true;
