@@ -26,6 +26,38 @@ impl ProblemSet {
         }
     }
 
+    pub fn files(&self) -> impl Iterator<Item = &String> {
+        self.loader.entries.keys()
+    }
+
+    fn append_clauses(&self, file: &str, output: &mut Vec<Clause>) {
+        // First handle dependencies
+        match self.loader.dependencies.get(file) {
+            Some(deps) => {
+                for dep in deps {
+                    self.append_clauses(dep, output);
+                }
+            }
+            None => (),
+        }
+
+        // Then handle the file itself
+        match self.clauses.get(file) {
+            Some(clauses) => {
+                for clause in clauses {
+                    output.push(clause.clone());
+                }
+            }
+            None => (),
+        }
+    }
+
+    pub fn get_clauses(&self, file: &str) -> Vec<Clause> {
+        let mut answer = Vec::new();
+        self.append_clauses(file, &mut answer);
+        answer
+    }
+
     pub fn load_dir(&mut self, dir: &str) {
         let d = format!("tptp/{}", dir);
         let paths = fs::read_dir(d.to_string()).unwrap();

@@ -190,7 +190,7 @@ pub struct Loader {
     pub entries: BTreeMap<String, Vec<Entry>>,
 
     // Maps each file to a list of other files it depends on
-    dependencies: HashMap<String, Vec<String>>,
+    pub dependencies: HashMap<String, Vec<String>>,
 }
 
 impl Loader {
