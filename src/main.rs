@@ -19,7 +19,7 @@ fn main() -> () {
     for file in ps.files() {
         println!("{}", file);
         let clauses = ps.get_clauses(file);
-        let prover = Prover::new();
+        let mut prover = Prover::new();
         for c in clauses {
             prover.insert(c);
         }
