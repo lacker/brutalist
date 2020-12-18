@@ -66,8 +66,8 @@ impl ProblemSet {
             );
         }
         println!(
-            "\nproved {} and disproved {} out of {}\n",
-            proved, disproved, total
+            "\n{}: proved {} and disproved {} out of {}\n",
+            dir, proved, disproved, total
         );
     }
 
