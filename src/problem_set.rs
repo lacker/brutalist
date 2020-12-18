@@ -33,6 +33,7 @@ impl ProblemSet {
 
     pub fn evaluate(&self, dir: &str) {
         let mut proved: u32 = 0;
+        let mut disproved: u32 = 0;
         let mut total: u32 = 0;
 
         for file in self.get_files(dir) {
@@ -45,22 +46,29 @@ impl ProblemSet {
             }
             total += 1;
             let comment = match prover.prove() {
-                Ok(_) => {
+                Some(true) => {
                     proved += 1;
                     "*** SUCCESS *** "
                 }
-                Err(s) => s,
+                Some(false) => {
+                    disproved += 1;
+                    "*** EXHAUST *** "
+                }
+                None => "out of time",
             }
             .to_string();
 
             println!(
-                "  {}: active = {}, passive = {}",
+                "         {}: active = {}, passive = {}",
                 comment,
                 prover.active.len(),
                 prover.passive.len()
             );
         }
-        println!("\nproved {} / {}\n", proved, total);
+        println!(
+            "\nproved {} and disproved {} out of {}\n",
+            proved, disproved, total
+        );
     }
 
     fn get_files(&self, dir: &str) -> impl Iterator<Item = &String> {
