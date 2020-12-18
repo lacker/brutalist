@@ -115,10 +115,13 @@ impl ProblemSet {
             Err(_) => names.sort(),
         };
 
+        let mut files = Vec::new();
         for name in names {
             let full = format!("{}/{}", d, name);
             self.loader.load_file(&full);
+            files.push(full);
         }
+        self.files.insert(dir.to_string(), files);
     }
 
     // See http://www.cs.cmu.edu/~emc/15817-s12/lecture/20120425_vampire.pdf
