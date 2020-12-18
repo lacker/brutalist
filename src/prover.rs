@@ -45,7 +45,7 @@ impl Prover {
     pub fn prove(&mut self) -> Option<bool> {
         let now = Instant::now();
         loop {
-            if now.elapsed().as_secs() > 20 {
+            if now.elapsed().as_secs() > 10 {
                 return None;
             }
             if let Some(Reverse(c)) = self.passive.pop() {
