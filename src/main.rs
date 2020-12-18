@@ -17,6 +17,9 @@ fn main() -> () {
     ps.normalize();
 
     for file in ps.files() {
+        if file.starts_with("tptp/Axioms") {
+            continue;
+        }
         println!("{}", file);
         let clauses = ps.get_clauses(file);
         let mut prover = Prover::new();
