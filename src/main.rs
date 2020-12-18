@@ -20,6 +20,7 @@ fn main() -> () {
         println!("{}", file);
         let clauses = ps.get_clauses(file);
         let mut prover = Prover::new();
+        prover.verbose = false;
         for c in clauses {
             prover.insert(c);
         }
