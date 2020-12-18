@@ -1,6 +1,7 @@
 use crate::cnf::*;
 use crate::legend::*;
 use crate::loader::*;
+use crate::prover::*;
 use crate::skolem::*;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
@@ -14,6 +15,9 @@ pub struct ProblemSet {
 
     // Stored per-file
     clauses: HashMap<String, Vec<Clause>>,
+
+    // Stored per-loaded-directory
+    files: HashMap<String, Vec<String>>,
 }
 
 impl ProblemSet {
@@ -23,11 +27,48 @@ impl ProblemSet {
             skolemizer: Skolemizer::new(),
             legend: Legend::new(),
             clauses: HashMap::new(),
+            files: HashMap::new(),
         }
     }
 
-    pub fn files(&self) -> impl Iterator<Item = &String> {
-        self.loader.entries.keys()
+    pub fn evaluate(&self, dir: &str) {
+        let mut proved: u32 = 0;
+        let mut total: u32 = 0;
+
+        for file in self.get_files(dir) {
+            println!("{}", file);
+            let clauses = self.get_clauses(file);
+            let mut prover = Prover::new();
+            prover.verbose = false;
+            for c in clauses {
+                prover.insert(c);
+            }
+            total += 1;
+            let comment = match prover.prove() {
+                Ok(_) => {
+                    proved += 1;
+                    "*** SUCCESS *** "
+                }
+                Err(s) => s,
+            }
+            .to_string();
+
+            println!(
+                "  {}: active = {}, passive = {}",
+                comment,
+                prover.active.len(),
+                prover.passive.len()
+            );
+        }
+        println!("\nproved {} / {}\n", proved, total);
+    }
+
+    fn get_files(&self, dir: &str) -> impl Iterator<Item = &String> {
+        if let Some(files) = self.files.get(dir) {
+            files.iter()
+        } else {
+            panic!("no files for {}", dir);
+        }
     }
 
     fn append_clauses(&self, file: &str, output: &mut Vec<Clause>) {

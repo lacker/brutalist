@@ -42,16 +42,16 @@ impl Prover {
         self.passive.push(Reverse(c));
     }
 
-    pub fn prove(&mut self) -> bool {
+    pub fn prove(&mut self) -> Result<(), &str> {
         let now = Instant::now();
         loop {
             if now.elapsed().as_secs() > 10 {
                 // Out of time
-                return false;
+                return Err("out of time");
             }
             if let Some(Reverse(c)) = self.passive.pop() {
                 if c.literals.len() == 0 {
-                    return true;
+                    return Ok(());
                 }
                 debug!(self, "given: {}", c);
 
@@ -74,7 +74,7 @@ impl Prover {
                 self.active.push(c);
             } else {
                 // We ran out of ways to continue the search
-                return false;
+                return Err("search space exhausted");
             }
         }
     }
@@ -91,7 +91,7 @@ mod tests {
         p.insert(Clause::read("(f2 k1) k2"));
         p.insert(Clause::read("(- (f1 X1)) (- (f2 X1))"));
         p.insert(Clause::read("(- k2)"));
-        assert!(p.prove());
+        assert_matches!(p.prove(), Ok(_));
     }
 
     #[test]
@@ -100,6 +100,6 @@ mod tests {
         p.insert(Clause::read("(f1 X1) (-(f2 X1)) "));
         p.insert(Clause::read("(f2 k1) k2"));
         p.insert(Clause::read("(- (f1 X1)) (- (f2 X1))"));
-        assert!(!p.prove());
+        assert_matches!(p.prove(), Err(_));
     }
 }

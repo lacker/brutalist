@@ -1,5 +1,7 @@
+#[macro_use]
+extern crate assert_matches;
+
 use crate::problem_set::*;
-use crate::prover::*;
 
 mod cnf;
 mod fol;
@@ -16,18 +18,6 @@ fn main() -> () {
     ps.load_dir("FNN");
     ps.normalize();
 
-    for file in ps.files() {
-        if file.starts_with("tptp/Axioms") {
-            continue;
-        }
-        println!("{}", file);
-        let clauses = ps.get_clauses(file);
-        let mut prover = Prover::new();
-        prover.verbose = false;
-        for c in clauses {
-            prover.insert(c);
-        }
-        let result = prover.prove();
-        println!("  {}", result);
-    }
+    ps.evaluate("FNE");
+    ps.evaluate("FNN");
 }
