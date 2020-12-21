@@ -2,6 +2,7 @@
 use crate::sexp::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::fmt;
 
 // This file describes how to represent statements in clausal normal form (CNF).
@@ -14,7 +15,9 @@ const FUNCTION: char = 'f';
 
 // Typically, in first-order logic, functions and predicates are different things.
 // Syntactically, they are essentially the same, so we treat them the same way.
-// Note that term comparison is derived and thus not mathematically meaningful.
+// Note that term comparison is derived. We do rely on renumbering interacting in a certain
+// way with this derived ordering. It isn't totally clear to me how to explain this so
+// maybe it is buggy.
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Term {
     Constant(u32),
@@ -122,7 +125,6 @@ impl fmt::Display for Term {
     }
 }
 
-// Literals are ordered by weight, with essentially arbitrary tiebreaking of term ordering.
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub enum Literal {
     Positive(Term),
@@ -333,6 +335,41 @@ impl Substitution {
             Err(())
         }
     }
+
+    // For variable normalization, we create a substitution that renumbers the
+    // variables in the order in which they are seen.
+    // Return if anything has to be changed.
+    fn normalize_term_variables(&mut self, term: &Term) -> bool {
+        match term {
+            Term::Constant(_) => false,
+            Term::Variable(old_id) => {
+                if !self.map.contains_key(old_id) {
+                    let new_id: u32 = self.map.len().try_into().unwrap();
+                    self.map.insert(*old_id, Term::Variable(new_id));
+                    return *old_id != new_id;
+                }
+                false
+            }
+            Term::Function(_, terms) => {
+                let mut changed = false;
+                for term in terms {
+                    changed = changed || self.normalize_term_variables(term);
+                }
+                changed
+            }
+        }
+    }
+
+    // For variable normalization, we create a substitution that renumbers the
+    // variables in the order in which they are seen.
+    // Return if anything has to be changed.
+    fn normalize_clause_variables(&mut self, clause: &Clause) -> bool {
+        let mut answer = false;
+        for literal in &clause.literals {
+            answer = answer || self.normalize_term_variables(literal.term());
+        }
+        answer
+    }
 }
 
 // A clause in CNF form is understood to be a disjunction (an "or") of literals.
@@ -344,8 +381,16 @@ pub struct Clause {
 impl Clause {
     pub fn new(literals: Vec<Literal>) -> Clause {
         let mut c = Clause { literals };
-        c.literals.sort();
-        c
+        loop {
+            c.literals.sort();
+            let mut sub = Substitution::new();
+            if !sub.normalize_clause_variables(&c) {
+                return c;
+            }
+            c = Clause {
+                literals: c.literals.iter().map(|lit| lit.sub(&sub)).collect(),
+            };
+        }
     }
 
     pub fn weight(&self) -> u32 {
@@ -508,7 +553,8 @@ mod tests {
         let clause = Clause::read("(f1 X1) (f1 X2)");
         let new_clauses = clause.factor();
         assert_eq!(new_clauses.len(), 1);
-        assert_eq!(new_clauses[0].to_string(), "(f1 X1)");
+        // Should get normalized
+        assert_eq!(new_clauses[0].to_string(), "(f1 X0)");
     }
 
     #[test]
