@@ -71,6 +71,23 @@ impl ProblemSet {
         );
     }
 
+    pub fn solve(&self, file: &str) {
+        let full = self.get_full_name(file);
+        let clauses = self.get_clauses(&full);
+        let mut prover = Prover::new();
+        prover.verbose = true;
+        for c in clauses {
+            prover.insert(c);
+        }
+        match prover.prove() {
+            Some(true) => println!("proof succeeded."),
+            Some(false) => println!("search space exhausted."),
+            None => println!("out of time."),
+        }
+        println!("active  = {}", prover.active.len());
+        println!("passive = {}", prover.passive.len());
+    }
+
     fn get_files(&self, dir: &str) -> impl Iterator<Item = &String> {
         if let Some(files) = self.files.get(dir) {
             files.iter()
@@ -107,8 +124,18 @@ impl ProblemSet {
         answer
     }
 
+    fn get_full_name(&self, partial: &str) -> String {
+        format!("tptp/{}", partial)
+    }
+
+    // Inconsistent with calls to load_dir
+    pub fn load_file(&mut self, file: &str) {
+        let full = self.get_full_name(file);
+        self.loader.load_file(&full);
+    }
+
     pub fn load_dir(&mut self, dir: &str) {
-        let d = format!("tptp/{}", dir);
+        let d = self.get_full_name(dir);
         let paths = fs::read_dir(d.to_string()).unwrap();
         let mut names = paths
             .map(|p| String::from(p.unwrap().path().file_name().unwrap().to_str().unwrap()))
