@@ -205,3 +205,23 @@ impl ProblemSet {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalization() {
+        let mut ps = ProblemSet::new();
+        let file = "FNE/BOO109+1.p";
+        ps.load_file(file);
+        ps.normalize();
+        let clause = &ps.get_clauses(&ps.get_full_name(file))[0];
+        assert_eq!(
+            clause.next_variable_id(),
+            3,
+            "expected 3 vars in: {}",
+            clause
+        );
+    }
+}
