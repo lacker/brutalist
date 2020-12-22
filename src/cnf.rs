@@ -229,14 +229,15 @@ impl fmt::Display for Literal {
     }
 }
 
-// Literal comparison is by weight first, then by sign, then finally by term comparison.
+// Literal comparison is by weight first, then positive-to-negative, then finally by
+// term comparison.
 impl Ord for Literal {
     fn cmp(&self, other: &Self) -> Ordering {
         let cmp1 = self.weight().cmp(&other.weight());
         if cmp1 != Ordering::Equal {
             return cmp1;
         }
-        let cmp2 = self.is_positive().cmp(&other.is_positive());
+        let cmp2 = other.is_positive().cmp(&self.is_positive());
         if cmp2 != Ordering::Equal {
             return cmp2;
         }
@@ -395,7 +396,8 @@ impl Substitution {
     fn normalize_clause_variables(&mut self, clause: &Clause) -> bool {
         let mut answer = false;
         for literal in &clause.literals {
-            answer = answer || self.normalize_term_variables(literal.term());
+            // Don't short-circuit this
+            answer = self.normalize_term_variables(literal.term()) || answer;
         }
         answer
     }
@@ -412,6 +414,7 @@ impl Clause {
         loop {
             self.literals.sort();
             let mut sub = Substitution::new();
+            println!("normalizing clause: {}", self);
             if !sub.normalize_clause_variables(&self) {
                 return;
             }
@@ -623,5 +626,15 @@ mod tests {
         }
         assert_eq!(new_clauses.len(), 1);
         assert_eq!(new_clauses[0].to_string(), "k2 (f1 k1)");
+    }
+
+    #[test]
+    fn test_normalize() {
+        let mut c = Clause::read("(- (f0 (f1 X0 (f1 X1 X2)))) (- (f0 X0)) (f0 X2)");
+        c.normalize();
+        assert_eq!(
+            c.to_string(),
+            "(f0 X0) (- (f0 X1)) (- (f0 (f1 X1 (f1 X2 X0))))"
+        );
     }
 }

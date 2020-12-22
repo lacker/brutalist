@@ -95,6 +95,7 @@ impl Legend {
                 if let fol::Formula::Atomic(t) = &**subf {
                     let af = self.make_term(varmap, &t)?;
                     let mut new_clause = cnf::Clause::new_negative(af);
+
                     if normalize {
                         new_clause.normalize();
                     }

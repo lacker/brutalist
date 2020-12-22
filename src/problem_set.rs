@@ -183,6 +183,7 @@ impl ProblemSet {
                 } else {
                     entry.formula.negate_into_nnf()
                 };
+
                 let postsize = norm1.size();
                 assert!(norm1.is_nnf());
                 if postsize > 4 * presize {
