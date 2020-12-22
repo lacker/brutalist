@@ -94,6 +94,17 @@ impl Term {
         }
     }
 
+    pub fn increment_variable_ids(&self, n: u32) -> Term {
+        match self {
+            Term::Constant(_) => self.clone(),
+            Term::Variable(v) => Term::Variable(v + n),
+            Term::Function(f, terms) => Term::Function(
+                *f,
+                terms.iter().map(|t| t.increment_variable_ids(n)).collect(),
+            ),
+        }
+    }
+
     fn read_sexp(sexp: &Sexp) -> Term {
         match sexp {
             Sexp::Atom(s) => match s.chars().next().unwrap() {
@@ -147,16 +158,20 @@ pub enum Literal {
 
 impl Literal {
     pub fn weight(&self) -> u32 {
-        match self {
-            Literal::Positive(t) => t.weight(),
-            Literal::Negative(t) => t.weight(),
-        }
+        self.term().weight()
     }
 
     pub fn sub(&self, s: &Substitution) -> Literal {
         match self {
             Literal::Positive(t) => Literal::Positive(t.sub(s)),
             Literal::Negative(t) => Literal::Negative(t.sub(s)),
+        }
+    }
+
+    pub fn increment_variable_ids(&self, n: u32) -> Literal {
+        match self {
+            Literal::Positive(t) => Literal::Positive(t.increment_variable_ids(n)),
+            Literal::Negative(t) => Literal::Negative(t.increment_variable_ids(n)),
         }
     }
 
@@ -451,6 +466,16 @@ impl Clause {
             literals.push(lit.sub(s));
         }
         Clause { literals }
+    }
+
+    pub fn increment_variable_ids(&self, n: u32) -> Clause {
+        Clause {
+            literals: self
+                .literals
+                .iter()
+                .map(|lit| lit.increment_variable_ids(n))
+                .collect(),
+        }
     }
 
     // Find all clauses that can be produced from this one via factoring.
