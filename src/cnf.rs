@@ -502,9 +502,13 @@ impl Clause {
     // Find all clauses that can be produced from these two via resolution.
     // See "Selecting the Selection" page 4
     pub fn resolve(&self, other: &Clause) -> Vec<Clause> {
+        // Shift the variable ids for the other clause so that they don't overlap
+        let offset = self.next_variable_id();
+        let shifted = other.increment_variable_ids(offset);
+
         let mut answer = Vec::new();
         for (i1, lit1) in self.literals.iter().enumerate() {
-            for (i2, lit2) in other.literals.iter().enumerate() {
+            for (i2, lit2) in shifted.literals.iter().enumerate() {
                 let (t1, t2, aligned) = lit1.align(lit2);
                 if aligned {
                     // Resolution works with oppositely-signed literals
@@ -515,7 +519,7 @@ impl Clause {
                     continue;
                 }
                 let part1 = self.subremove(&sub, i1);
-                let part2 = other.subremove(&sub, i2);
+                let part2 = shifted.subremove(&sub, i2);
                 let mut new_clause = part1.combine(&part2);
                 new_clause.normalize();
                 answer.push(new_clause);
