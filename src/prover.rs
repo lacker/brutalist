@@ -53,7 +53,7 @@ impl Prover {
                 if c.literals.len() == 0 {
                     return Some(true);
                 }
-                debug!(self, "given: {}", c);
+                debug!(self, "\ngiven: {}", c);
 
                 for new_clause in c.factor().into_iter() {
                     debug!(self, "{} factors into {}", c, new_clause);
@@ -63,7 +63,7 @@ impl Prover {
                 let mut new_clauses = Vec::new();
                 for clause in &self.active {
                     for new_clause in c.resolve(&clause) {
-                        debug!(self, "{} and {} resolve into {}", c, clause, new_clause);
+                        debug!(self, "\n{} and {} resolve into {}", c, clause, new_clause);
                         new_clauses.push(new_clause);
                     }
                 }
