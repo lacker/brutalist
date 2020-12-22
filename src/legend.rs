@@ -78,38 +78,50 @@ impl Legend {
         &mut self,
         varmap: &mut HashMap<String, u32>,
         formula: &fol::Formula,
+        normalize: bool,
         clauses: &mut Vec<cnf::Clause>,
     ) -> Result<(), String> {
         let startlen = varmap.len();
         match formula {
             fol::Formula::Atomic(t) => {
                 let af = self.make_term(varmap, t)?;
-                clauses.push(cnf::Clause::new_positive(af));
+                let mut new_clause = cnf::Clause::new_positive(af);
+                if normalize {
+                    new_clause.normalize();
+                }
+                clauses.push(new_clause);
             }
             fol::Formula::Not(subf) => {
                 if let fol::Formula::Atomic(t) = &**subf {
                     let af = self.make_term(varmap, &t)?;
-                    clauses.push(cnf::Clause::new_negative(af));
+                    let mut new_clause = cnf::Clause::new_negative(af);
+                    if normalize {
+                        new_clause.normalize();
+                    }
+                    clauses.push(new_clause);
                 } else {
                     panic!("nots should be next to leaves");
                 }
             }
             fol::Formula::And(f1, f2) => {
                 // For an "and" node, you just concatenate the clauses from children.
-                self.clausify_aux(varmap, f1, clauses)?;
-                self.clausify_aux(varmap, f2, clauses)?;
+                self.clausify_aux(varmap, f1, normalize, clauses)?;
+                self.clausify_aux(varmap, f2, normalize, clauses)?;
             }
             fol::Formula::Or(f1, f2) => {
                 // For an "or" node, you have to distribute and make |f1| * |f2| clauses.
-                // In some cases, this blows up. Probably only with problems perversely
-                // created to stump theorem-provers.
+                // For large formulas, this can blow up.
                 let mut left = Vec::new();
                 let mut right = Vec::new();
-                self.clausify_aux(varmap, f1, &mut left)?;
-                self.clausify_aux(varmap, f2, &mut right)?;
+                self.clausify_aux(varmap, f1, false, &mut left)?;
+                self.clausify_aux(varmap, f2, false, &mut right)?;
                 for a in left {
                     for b in &right {
-                        clauses.push(a.combine(b));
+                        let mut new_clause = a.combine(b);
+                        if normalize {
+                            new_clause.normalize();
+                        }
+                        clauses.push(new_clause);
                         if clauses.len() > 20000 {
                             panic!("too many clauses in a single formula");
                         }
@@ -125,7 +137,7 @@ impl Legend {
                 let id: u32 = self.variable_for_id.len().try_into().unwrap();
                 self.variable_for_id.push(s.to_string());
                 varmap.insert(s.to_string(), id);
-                self.clausify_aux(varmap, f, clauses)?;
+                self.clausify_aux(varmap, f, normalize, clauses)?;
                 match previous_id {
                     Some(i) => {
                         varmap.insert(s.to_string(), i);
@@ -144,9 +156,11 @@ impl Legend {
     // Converts a formula to clausal normal form (CNF).
     // It should already be skolemized.
     // This also converts to prenex form.
+    // This also normalizes within the clause, to sort by smallest literal first
+    // and number the variables in a normalized way.
     pub fn clausify(&mut self, formula: &fol::Formula, clauses: &mut Vec<cnf::Clause>) {
         let mut varmap = HashMap::new();
-        if let Err(e) = self.clausify_aux(&mut varmap, formula, clauses) {
+        if let Err(e) = self.clausify_aux(&mut varmap, formula, true, clauses) {
             panic!("clausify failed: {}", e);
         }
         assert!(varmap.is_empty());

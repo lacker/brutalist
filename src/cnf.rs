@@ -51,6 +51,20 @@ impl Term {
         }
     }
 
+    // Returns one more than the maximum variable id in this expression, or zero if
+    // there are no variables in this expression.
+    pub fn next_variable_id(&self) -> u32 {
+        match self {
+            Term::Constant(_) => 0,
+            Term::Variable(i) => i + 1,
+            Term::Function(_, terms) => terms
+                .iter()
+                .map(|t| t.next_variable_id())
+                .max()
+                .unwrap_or(0),
+        }
+    }
+
     pub fn sub_one(&self, v: u32, term: &Term) -> Term {
         match self {
             Term::Constant(_) => self.clone(),
@@ -379,17 +393,14 @@ pub struct Clause {
 }
 
 impl Clause {
-    pub fn new(literals: Vec<Literal>) -> Clause {
-        let mut c = Clause { literals };
+    pub fn normalize(&mut self) {
         loop {
-            c.literals.sort();
+            self.literals.sort();
             let mut sub = Substitution::new();
-            if !sub.normalize_clause_variables(&c) {
-                return c;
+            if !sub.normalize_clause_variables(&self) {
+                return;
             }
-            c = Clause {
-                literals: c.literals.iter().map(|lit| lit.sub(&sub)).collect(),
-            };
+            self.literals = self.literals.iter().map(|lit| lit.sub(&sub)).collect();
         }
     }
 
@@ -411,25 +422,35 @@ impl Clause {
 
     // "or"s this with another clause.
     pub fn combine(&self, other: &Clause) -> Clause {
-        let mut lits = self.literals.clone();
-        lits.extend(other.literals.clone());
-        Clause::new(lits)
+        let mut literals = self.literals.clone();
+        literals.extend(other.literals.clone());
+        Clause { literals }
     }
 
     pub fn is_empty(&self) -> bool {
         self.literals.is_empty()
     }
 
+    // Returns one more than the maximum variable id in this expression, or zero if
+    // there are no variables in this expression.
+    pub fn next_variable_id(&self) -> u32 {
+        self.literals
+            .iter()
+            .map(|lit| lit.term().next_variable_id())
+            .max()
+            .unwrap_or(0)
+    }
+
     // Simultaneously applies the given substitution and removes the remove'th clause.
     pub fn subremove(&self, s: &Substitution, remove: usize) -> Clause {
-        let mut lits = Vec::new();
+        let mut literals = Vec::new();
         for (i, lit) in self.literals.iter().enumerate() {
             if i == remove {
                 continue;
             }
-            lits.push(lit.sub(s));
+            literals.push(lit.sub(s));
         }
-        Clause::new(lits)
+        Clause { literals }
     }
 
     // Find all clauses that can be produced from this one via factoring.
@@ -441,7 +462,11 @@ impl Clause {
             for (offset, lit2) in self.literals[start..].iter().enumerate() {
                 let i2 = start + offset;
                 match Substitution::unify_literals(lit1, lit2) {
-                    Ok(sub) => answer.push(self.subremove(&sub, i2)),
+                    Ok(sub) => {
+                        let mut new_clause = self.subremove(&sub, i2);
+                        new_clause.normalize();
+                        answer.push(new_clause);
+                    }
                     Err(_) => (),
                 }
             }
@@ -466,7 +491,9 @@ impl Clause {
                 }
                 let part1 = self.subremove(&sub, i1);
                 let part2 = other.subremove(&sub, i2);
-                answer.push(part1.combine(&part2));
+                let mut new_clause = part1.combine(&part2);
+                new_clause.normalize();
+                answer.push(new_clause);
             }
         }
         answer

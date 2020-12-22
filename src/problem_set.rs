@@ -13,7 +13,7 @@ pub struct ProblemSet {
     skolemizer: Skolemizer,
     legend: Legend,
 
-    // Stored per-file
+    // Stored per-file. The clauses are normalized.
     clauses: HashMap<String, Vec<Clause>>,
 
     // Stored per-loaded-directory
@@ -74,6 +74,10 @@ impl ProblemSet {
     pub fn solve(&self, file: &str) {
         let full = self.get_full_name(file);
         let clauses = self.get_clauses(&full);
+        println!("clauses:");
+        for clause in &clauses {
+            println!("  {}", clause);
+        }
         let mut prover = Prover::new();
         prover.verbose = true;
         for c in clauses {

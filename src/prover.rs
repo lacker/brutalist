@@ -34,6 +34,7 @@ impl Prover {
         }
     }
 
+    // Should already be normalized when we insert
     pub fn insert(&mut self, c: Clause) {
         if self.seen.contains(&c) {
             return;
