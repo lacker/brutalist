@@ -2,6 +2,7 @@
 use crate::sexp::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::convert::TryInto;
 use std::fmt;
 
@@ -414,7 +415,6 @@ impl Clause {
         loop {
             self.literals.sort();
             let mut sub = Substitution::new();
-            println!("normalizing clause: {}", self);
             if !sub.normalize_clause_variables(&self) {
                 return;
             }
@@ -447,6 +447,21 @@ impl Clause {
 
     pub fn is_empty(&self) -> bool {
         self.literals.is_empty()
+    }
+
+    pub fn is_tautology(&self) -> bool {
+        let mut positives = HashSet::new();
+        for literal in &self.literals {
+            if literal.is_positive() {
+                positives.insert(literal.term().clone());
+            }
+        }
+        for literal in &self.literals {
+            if !literal.is_positive() && positives.contains(&literal.term()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Returns one more than the maximum variable id in this expression, or zero if
@@ -636,5 +651,13 @@ mod tests {
             c.to_string(),
             "(f0 X0) (- (f0 X1)) (- (f0 (f1 X1 (f1 X2 X0))))"
         );
+    }
+
+    #[test]
+    fn test_tautology() {
+        let c1 = Clause::read("(- (f0 (f1 X0 (f1 X1 X2)))) (- (f0 X0)) (f0 X2)");
+        assert_eq!(c1.is_tautology(), false);
+        let c2 = Clause::read("(- (f0 X0)) (f0 X0)");
+        assert!(c2.is_tautology());
     }
 }
