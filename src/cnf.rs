@@ -414,6 +414,7 @@ impl Clause {
     pub fn normalize(&mut self) {
         loop {
             self.literals.sort();
+            self.literals.dedup();
             let mut sub = Substitution::new();
             if !sub.normalize_clause_variables(&self) {
                 return;
