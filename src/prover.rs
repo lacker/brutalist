@@ -35,7 +35,11 @@ impl Prover {
     }
 
     // Should already be normalized when we insert
+    // Filter out duplicates and tautologies
     pub fn insert(&mut self, c: Clause) {
+        if c.is_tautology() {
+            return;
+        }
         if self.seen.contains(&c) {
             return;
         }
