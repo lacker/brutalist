@@ -61,14 +61,17 @@ impl Prover {
                 debug!(self, "\ngiven: {}", c);
 
                 for new_clause in c.factor().into_iter() {
-                    debug!(self, "{} factors into {}", c, new_clause);
+                    debug!(self, "\nfactoring:\n  {}\nreduces to:\n  {}", c, new_clause);
                     self.insert(new_clause);
                 }
 
                 let mut new_clauses = Vec::new();
                 for clause in &self.active {
                     for new_clause in c.resolve(&clause) {
-                        debug!(self, "\n{} and {} resolve into {}", c, clause, new_clause);
+                        debug!(
+                            self,
+                            "\nresolution:\n  {}\n  {}\nresolve into:\n  {}", c, clause, new_clause
+                        );
                         new_clauses.push(new_clause);
                     }
                 }
