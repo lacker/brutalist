@@ -2,6 +2,7 @@ use crate::cnf::*;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::collections::HashSet;
+use std::env;
 use std::time::Instant;
 
 macro_rules! debug {
@@ -30,7 +31,7 @@ impl Prover {
             active: Vec::new(),
             passive: BinaryHeap::new(),
             seen: HashSet::new(),
-            verbose: true,
+            verbose: env::var("DEBUG").is_ok(),
         }
     }
 

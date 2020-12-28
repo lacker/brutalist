@@ -24,7 +24,7 @@ fn suite() {
 }
 
 fn main() -> () {
-    if let Ok(_) = env::var("SUITE") {
+    if env::var("SUITE").is_ok() {
         suite();
         return;
     }
