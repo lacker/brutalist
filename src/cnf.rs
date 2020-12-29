@@ -266,7 +266,7 @@ impl fmt::Display for Literal {
 }
 
 // Literal comparison is by weight first, then positive-to-negative, then finally by
-// term comparison.
+// term comparison. This may not be ideal.
 impl Ord for Literal {
     fn cmp(&self, other: &Self) -> Ordering {
         let cmp1 = self.weight().cmp(&other.weight());
