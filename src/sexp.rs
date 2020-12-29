@@ -5,6 +5,7 @@ use std::fmt;
 
 // A generic tree-of-strings structure.
 // Some stuff is left over from assuming TPTP format, but ideally that would go elsewhere.
+#[derive(Clone)]
 pub enum Sexp {
     Atom(String),
     List(Vec<Sexp>),
@@ -53,6 +54,20 @@ impl Sexp {
     pub fn new(s: &str) -> Sexp {
         let tokens = tokenize(s);
         deparenthesize(tokens)
+    }
+
+    // Flattens the top-level list if its length is one
+    pub fn flatten_one(&self) -> Sexp {
+        match self {
+            Sexp::Atom(_) => self.clone(),
+            Sexp::List(v) => {
+                if v.len() == 1 {
+                    v[0].clone()
+                } else {
+                    self.clone()
+                }
+            }
+        }
     }
 }
 

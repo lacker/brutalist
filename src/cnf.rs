@@ -16,10 +16,7 @@ const FUNCTION: char = 'f';
 
 // Typically, in first-order logic, functions and predicates are different things.
 // Syntactically, they are essentially the same, so we treat them the same way.
-// Note that term comparison is derived. We do rely on renumbering interacting in a certain
-// way with this derived ordering. It isn't totally clear to me how to explain this so
-// maybe it is buggy.
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub enum Term {
     Constant(u32),
     Variable(u32),
@@ -129,7 +126,7 @@ impl Term {
     }
 
     pub fn read(s: &str) -> Term {
-        let sexp = Sexp::new(s);
+        let sexp = Sexp::new(s).flatten_one();
         Term::read_sexp(&sexp)
     }
 }
@@ -148,6 +145,44 @@ impl fmt::Display for Term {
                 write!(f, "({}{} {})", FUNCTION, func, sub)
             }
         }
+    }
+}
+
+// Sort by weight, then constant < function < variable, then ids, then recursively for functions.
+impl Ord for Term {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let cmp1 = self.weight().cmp(&other.weight());
+        if cmp1 != Ordering::Equal {
+            return cmp1;
+        }
+        match self {
+            Term::Constant(c1) => match other {
+                Term::Constant(c2) => c1.cmp(c2),
+                _ => Ordering::Less,
+            },
+            Term::Variable(v1) => match other {
+                Term::Variable(v2) => v1.cmp(v2),
+                _ => Ordering::Greater,
+            },
+            Term::Function(f1, ts1) => match other {
+                Term::Constant(_) => Ordering::Greater,
+                Term::Variable(_) => Ordering::Less,
+                Term::Function(f2, ts2) => {
+                    let cmpf = f1.cmp(f2);
+                    if cmpf != Ordering::Equal {
+                        cmpf
+                    } else {
+                        ts1.cmp(ts2)
+                    }
+                }
+            },
+        }
+    }
+}
+
+impl PartialOrd for Term {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -203,7 +238,7 @@ impl Literal {
     }
 
     fn read(s: &str) -> Literal {
-        let sexp = Sexp::new(s);
+        let sexp = Sexp::new(s).flatten_one();
         Literal::read_sexp(&sexp)
     }
 
@@ -660,5 +695,13 @@ mod tests {
         assert_eq!(c1.is_tautology(), false);
         let c2 = Clause::read("(- (f0 X0)) (f0 X0)");
         assert!(c2.is_tautology());
+    }
+
+    #[test]
+    fn test_ordering() {
+        let pos = Literal::read("X3");
+        let neg = Literal::read("-X3");
+        assert_eq!(1.cmp(&2), Ordering::Less);
+        assert_eq!(pos.cmp(&neg), Ordering::Less);
     }
 }
