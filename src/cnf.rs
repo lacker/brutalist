@@ -3,7 +3,6 @@ use crate::sexp::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::convert::TryInto;
 use std::fmt;
 
 // This file describes how to represent statements in clausal normal form (CNF).
@@ -410,7 +409,7 @@ impl Substitution {
             Term::Constant(_) => false,
             Term::Variable(old_id) => {
                 if !self.map.contains_key(old_id) {
-                    let new_id: u32 = self.map.len().try_into().unwrap();
+                    let new_id = self.map.len() as u32;
                     self.map.insert(*old_id, Term::Variable(new_id));
                     return *old_id != new_id;
                 }

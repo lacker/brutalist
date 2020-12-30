@@ -1,7 +1,6 @@
 use crate::cnf;
 use crate::fol;
 use std::collections::HashMap;
-use std::convert::TryInto;
 
 // The legend tracks the string -> id mappings needed to correlate FOL and CNF formats.
 pub struct Legend {
@@ -42,7 +41,7 @@ impl Legend {
             fol::Term::Constant(s) => {
                 if !self.id_for_constant.contains_key(s) {
                     // Allocate a new id for this constant
-                    let id: u32 = self.constant_for_id.len().try_into().unwrap();
+                    let id = self.constant_for_id.len() as u32;
                     self.constant_for_id.push(s.to_string());
                     self.id_for_constant.insert(s.to_string(), id);
                 }
@@ -58,7 +57,7 @@ impl Legend {
             fol::Term::Function(s, terms) => {
                 if !self.id_for_function.contains_key(s) {
                     // Allocate a new id for this function
-                    let id: u32 = self.function_for_id.len().try_into().unwrap();
+                    let id = self.function_for_id.len() as u32;
                     self.function_for_id.push(s.to_string());
                     self.id_for_function.insert(s.to_string(), id);
                 }
@@ -135,7 +134,7 @@ impl Legend {
                 // The new id overrides any previous one, for this subtree.
                 // We save the previous id so we can restore it when we're done.
                 let previous_id = varmap.remove(s);
-                let id: u32 = self.variable_for_id.len().try_into().unwrap();
+                let id = self.variable_for_id.len() as u32;
                 self.variable_for_id.push(s.to_string());
                 varmap.insert(s.to_string(), id);
                 self.clausify_aux(varmap, f, normalize, clauses)?;

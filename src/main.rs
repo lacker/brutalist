@@ -19,8 +19,8 @@ fn suite() {
     ps.load_dir("FNE");
     ps.load_dir("FNN");
     ps.normalize();
-    ps.evaluate("FNE");
-    ps.evaluate("FNN");
+    ps.suite("FNE");
+    ps.suite("FNN");
 }
 
 fn main() -> () {

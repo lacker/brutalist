@@ -7,6 +7,7 @@ use rand::seq::SliceRandom;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::time::Instant;
 
 pub struct ProblemSet {
     loader: Loader,
@@ -31,20 +32,22 @@ impl ProblemSet {
         }
     }
 
-    pub fn evaluate(&self, dir: &str) {
+    // Runs all problems in the directory
+    pub fn suite(&self, dir: &str) {
         let mut proved: u32 = 0;
         let mut disproved: u32 = 0;
-        let mut total: u32 = 0;
+        let mut total_problems: u32 = 0;
+        let mut total_active: u32 = 0;
+        let mut total_clauses: u32 = 0;
+        let now = Instant::now();
 
         for file in self.get_files(dir) {
-            println!("{}", file);
             let clauses = self.get_clauses(file);
             let mut prover = Prover::new();
             prover.verbose = false;
             for c in clauses {
                 prover.insert(c);
             }
-            total += 1;
             let comment = match prover.prove() {
                 Some(true) => {
                     proved += 1;
@@ -58,16 +61,27 @@ impl ProblemSet {
             }
             .to_string();
 
+            total_problems += 1;
+            let active = prover.active.len() as u32;
+            let passive = prover.passive.len() as u32;
+            total_active += active;
+            total_clauses += active + passive;
+
+            let last = file.split('/').rev().next().unwrap_or("???");
             println!(
-                "         {}: active = {}, passive = {}",
-                comment,
-                prover.active.len(),
-                prover.passive.len()
+                "{} - {}: active = {}, passive = {}",
+                last, comment, active, passive
             );
         }
         println!(
             "\n{}: proved {} and disproved {} out of {}\n",
-            dir, proved, disproved, total
+            dir, proved, disproved, total_problems
+        );
+        let elapsed = now.elapsed().as_secs() as f32;
+        println!(
+            "aps: {} cps: {}",
+            total_active as f32 / elapsed,
+            total_clauses as f32 / elapsed
         );
     }
 
