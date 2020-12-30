@@ -53,18 +53,17 @@ impl ProblemSet {
             let clauses = self.get_clauses(file);
             let mut prover = Prover::new(clauses);
             prover.verbose = false;
-            let comment = match prover.prove() {
+            let (precomment, postcomment) = match prover.prove() {
                 Some(true) => {
                     proved += 1;
-                    "***** SUCCESS ***** "
+                    ("success", "***** SUCCESS *****")
                 }
                 Some(false) => {
                     disproved += 1;
-                    "***** EXHAUST ***** "
+                    ("exhaust", "***** EXHAUST *****")
                 }
-                None => "out of time",
-            }
-            .to_string();
+                None => ("timeout", ""),
+            };
 
             total_problems += 1;
             let active = prover.active.len() as u32;
@@ -74,8 +73,8 @@ impl ProblemSet {
 
             let last = file.split('/').rev().next().unwrap_or("???");
             println!(
-                "{:>14} - {}: active = {}, passive = {}",
-                last, comment, active, passive
+                "{:>14} - {}: active = {}, passive = {}, {}",
+                last, precomment, active, passive, postcomment
             );
         }
 
