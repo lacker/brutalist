@@ -483,30 +483,33 @@ impl Clause {
     }
 
     // Sorts the literals and makes a heuristic attempt to normalize variable numbering.
+    // If there are any clauses, heuristically picks one as the "selected" clause.
     pub fn normalize(&mut self) {
         loop {
             self.literals.sort();
             self.literals.dedup();
             let mut sub = Substitution::new();
             if !sub.normalize_clause_variables(&self) {
+                // Literal normalization is complete. Now we can pick the selected clause.
+                if self.literals.is_empty() {
+                    return;
+                }
+
+                // Pick the largest negative clause if there are any
+                for (i, lit) in self.literals.iter().enumerate().rev() {
+                    if !lit.is_positive() {
+                        self.selection = Some(i);
+                        return;
+                    }
+                }
+
+                // Fall back to the largest positive clause
+                self.selection = Some(self.literals.len() - 1);
                 return;
             }
+
             self.literals = self.literals.iter().map(|lit| lit.sub(&sub)).collect();
         }
-    }
-
-    // Heuristically selects one clause. Should be done after normalization.
-    // Current heuristic: select the largest negative clause, or if they are all negative,
-    // the largest positive clause.
-    pub fn select(&mut self) {
-        assert!(!self.literals.is_empty());
-        for (i, lit) in self.literals.iter().enumerate().rev() {
-            if !lit.is_positive() {
-                self.selection = Some(i);
-                return;
-            }
-        }
-        self.selection = Some(self.literals.len() - 1);
     }
 
     // The selected literal.
