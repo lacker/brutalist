@@ -185,6 +185,17 @@ impl PartialOrd for Term {
     }
 }
 
+// A Key is used for indexing literals or clauses. Any two literals that unify have the same
+// key. This means we can just check literals with the same key for unification, rather than
+// checking all pairs of literals. How much time this saves depends on the problem.
+// Top-level variables can't be keyed.
+#[derive(Eq, Hash, PartialEq)]
+pub struct Key {
+    pub is_positive: bool,
+    pub is_constant: bool,
+    pub id: u32,
+}
+
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub enum Literal {
     Positive(Term),
@@ -221,6 +232,23 @@ impl Literal {
         match self {
             Literal::Positive(t) => t,
             Literal::Negative(t) => t,
+        }
+    }
+
+    pub fn key(&self) -> Key {
+        match self.term() {
+            Term::Constant(id) => Key {
+                is_positive: self.is_positive(),
+                is_constant: true,
+                id: *id,
+            },
+            Term::Variable(_) => panic!("cannot key a variable"),
+
+            Term::Function(id, _) => Key {
+                is_positive: self.is_positive(),
+                is_constant: false,
+                id: *id,
+            },
         }
     }
 
