@@ -41,11 +41,15 @@ impl Prover {
     }
 
     // Should already be normalized when we insert.
-    // Filter out duplicates and tautologies.
+    // Filter out duplicates, tautologies, and excessively deep terms.
     // Returns whether this passive clause immediately finishes the proof
     fn insert_passive(&mut self, c: Clause) -> bool {
         if c.literals.is_empty() {
             return true;
+        }
+        if c.height() > 100 {
+            // Theoretically unsound but prevents stack overflows
+            return false;
         }
         if c.is_tautology() {
             return false;
@@ -127,6 +131,16 @@ mod tests {
             Clause::read("(f1 X1) (-(f2 X1)) "),
             Clause::read("(f2 k1) k2"),
             Clause::read("(- (f1 X1)) (- (f2 X1))"),
+        ]);
+        assert_matches!(p.prove(), Some(false));
+    }
+
+    #[test]
+    fn test_height_limit() {
+        // This should exhaust only because term height is limited
+        let mut p = Prover::new(vec![
+            Clause::read("(- (f1 X1)) (f1 (f1 X1))"),
+            Clause::read("(f1 k1)"),
         ]);
         assert_matches!(p.prove(), Some(false));
     }

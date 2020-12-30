@@ -31,6 +31,14 @@ impl Term {
         }
     }
 
+    pub fn height(&self) -> u32 {
+        match self {
+            Term::Constant(_) => 1,
+            Term::Variable(_) => 1,
+            Term::Function(_, terms) => terms.iter().map(|t| t.height()).max().unwrap_or(0) + 1,
+        }
+    }
+
     // An expression is "ground" if it contains no variables.
     pub fn is_ground(&self) -> bool {
         match self {
@@ -205,6 +213,10 @@ pub enum Literal {
 impl Literal {
     pub fn weight(&self) -> u32 {
         self.term().weight()
+    }
+
+    pub fn height(&self) -> u32 {
+        self.term().height()
     }
 
     pub fn sub(&self, s: &Substitution) -> Literal {
@@ -466,6 +478,16 @@ impl Substitution {
     }
 }
 
+impl fmt::Display for Substitution {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut parts: Vec<String> = Vec::new();
+        for (v, term) in &self.map {
+            parts.push(format!("X{} -> {}", v, term));
+        }
+        write!(f, "{}", parts.join(", "))
+    }
+}
+
 // A clause in CNF form is understood to be a disjunction (an "or") of literals.
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct Clause {
@@ -527,6 +549,14 @@ impl Clause {
 
     pub fn weight(&self) -> u32 {
         self.literals.iter().map(|lit| lit.weight()).sum()
+    }
+
+    pub fn height(&self) -> u32 {
+        self.literals
+            .iter()
+            .map(|lit| lit.height())
+            .max()
+            .unwrap_or(0)
     }
 
     pub fn new_positive(term: Term) -> Clause {
