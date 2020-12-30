@@ -454,8 +454,7 @@ impl Clause {
         }
     }
 
-    // Sorts the literals, makes a heuristic attempt to normalize variable numbering, and
-    // selects a clause.
+    // Sorts the literals and makes a heuristic attempt to normalize variable numbering.
     pub fn normalize(&mut self) {
         loop {
             self.literals.sort();
@@ -466,6 +465,20 @@ impl Clause {
             }
             self.literals = self.literals.iter().map(|lit| lit.sub(&sub)).collect();
         }
+    }
+
+    // Heuristically selects one clause. Should be done after normalization.
+    // Current heuristic: select the largest negative clause, or if they are all negative,
+    // the largest positive clause.
+    pub fn select(&mut self) {
+        assert!(!self.literals.is_empty());
+        for (i, lit) in self.literals.iter().enumerate().rev() {
+            if !lit.is_positive() {
+                self.selection = Some(i as u32);
+                return;
+            }
+        }
+        self.selection = Some(self.literals.len() as u32 - 1);
     }
 
     pub fn weight(&self) -> u32 {

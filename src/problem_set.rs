@@ -81,16 +81,20 @@ impl ProblemSet {
                 last, comment, active, passive
             );
         }
+
+        // Summary stats
+        println!();
         println!(
-            "\n{}: proved {} and disproved {} out of {}\n",
+            "{}: proved {} and disproved {} out of {}",
             dir, proved, disproved, total_problems
         );
         let elapsed = now.elapsed().as_secs() as f32;
         println!(
-            "aps: {:.3} cps: {:.3}",
+            "aps: {:.3} cps: {:.3}\n",
             total_active as f32 / elapsed,
             total_clauses as f32 / elapsed
         );
+        println!();
     }
 
     pub fn solve(&self, file: &str) {
