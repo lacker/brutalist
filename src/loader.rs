@@ -282,7 +282,7 @@ impl Loader {
             return;
         }
 
-        println!("loading {}", fname);
+        // println!("loading {}", fname);
 
         let mut file = fs::File::open(fname).expect(&format!("could not load {}", fname));
         let mut contents = String::new();
@@ -299,10 +299,10 @@ impl Loader {
         // println!("deoperated is: {}", deo);
 
         self.load_sexp(fname, &deo);
-        println!(
-            "  loaded {} entries from {}",
-            self.entries[fname].len(),
-            fname
-        );
+        // println!(
+        // "  loaded {} entries from {}",
+        //    self.entries[fname].len(),
+        //    fname
+        // );
     }
 }

@@ -17,7 +17,7 @@ pub struct ProblemSet {
     // Stored per-file. The clauses are normalized.
     clauses: HashMap<String, Vec<Clause>>,
 
-    // Stored per-loaded-directory
+    // The keys are directories, values are files in those directories
     files: HashMap<String, Vec<String>>,
 }
 
@@ -30,6 +30,14 @@ impl ProblemSet {
             clauses: HashMap::new(),
             files: HashMap::new(),
         }
+    }
+
+    pub fn num_clauses(&self) -> u32 {
+        self.clauses.values().map(|v| v.len() as u32).sum()
+    }
+
+    pub fn num_files(&self) -> u32 {
+        self.clauses.len() as u32
     }
 
     // Runs all problems in the directory
@@ -51,11 +59,11 @@ impl ProblemSet {
             let comment = match prover.prove() {
                 Some(true) => {
                     proved += 1;
-                    "*** SUCCESS *** "
+                    "***** SUCCESS ***** "
                 }
                 Some(false) => {
                     disproved += 1;
-                    "*** EXHAUST *** "
+                    "***** EXHAUST ***** "
                 }
                 None => "out of time",
             }
@@ -69,7 +77,7 @@ impl ProblemSet {
 
             let last = file.split('/').rev().next().unwrap_or("???");
             println!(
-                "{} - {}: active = {}, passive = {}",
+                "{:>11} - {}: active = {}, passive = {}",
                 last, comment, active, passive
             );
         }
@@ -215,9 +223,15 @@ impl ProblemSet {
                 // Phase 3+4: CNF
                 self.legend.clausify(&norm2, &mut clauses);
             }
-            println!("converted {} into {} CNF clauses", fname, clauses.len());
+            // println!("converted {} into {} CNF clauses", fname, clauses.len());
             self.clauses.insert(fname.to_string(), clauses);
         }
+
+        println!(
+            "normalized {} clauses from {} files",
+            self.num_clauses(),
+            self.num_files()
+        );
     }
 }
 

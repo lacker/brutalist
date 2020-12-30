@@ -442,9 +442,20 @@ impl Substitution {
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct Clause {
     pub literals: Vec<Literal>,
+    pub selection: Option<u32>,
 }
 
 impl Clause {
+    // Creates a new clause with no literals selected.
+    pub fn new(literals: Vec<Literal>) -> Clause {
+        Clause {
+            literals,
+            selection: None,
+        }
+    }
+
+    // Sorts the literals, makes a heuristic attempt to normalize variable numbering, and
+    // selects a clause.
     pub fn normalize(&mut self) {
         loop {
             self.literals.sort();
@@ -462,22 +473,18 @@ impl Clause {
     }
 
     pub fn new_positive(term: Term) -> Clause {
-        Clause {
-            literals: vec![Literal::Positive(term)],
-        }
+        Clause::new(vec![Literal::Positive(term)])
     }
 
     pub fn new_negative(term: Term) -> Clause {
-        Clause {
-            literals: vec![Literal::Negative(term)],
-        }
+        Clause::new(vec![Literal::Negative(term)])
     }
 
     // "or"s this with another clause.
     pub fn combine(&self, other: &Clause) -> Clause {
         let mut literals = self.literals.clone();
         literals.extend(other.literals.clone());
-        Clause { literals }
+        Clause::new(literals)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -518,17 +525,16 @@ impl Clause {
             }
             literals.push(lit.sub(s));
         }
-        Clause { literals }
+        Clause::new(literals)
     }
 
     pub fn increment_variable_ids(&self, n: u32) -> Clause {
-        Clause {
-            literals: self
-                .literals
+        Clause::new(
+            self.literals
                 .iter()
                 .map(|lit| lit.increment_variable_ids(n))
                 .collect(),
-        }
+        )
     }
 
     // Find all clauses that can be produced from this one via factoring.
@@ -583,12 +589,8 @@ impl Clause {
 
     fn read_sexp(sexp: &Sexp) -> Clause {
         match sexp {
-            Sexp::Atom(_) => Clause {
-                literals: vec![Literal::read_sexp(sexp)],
-            },
-            Sexp::List(list) => Clause {
-                literals: list.iter().map(|s| Literal::read_sexp(s)).collect(),
-            },
+            Sexp::Atom(_) => Clause::new(vec![Literal::read_sexp(sexp)]),
+            Sexp::List(list) => Clause::new(list.iter().map(|s| Literal::read_sexp(s)).collect()),
         }
     }
 
