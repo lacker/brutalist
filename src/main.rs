@@ -30,7 +30,7 @@ fn main() -> () {
     }
 
     let mut ps = ProblemSet::new();
-    let file = "FNE/BOO109+1.p";
+    let file = "FNE/SYN986+1.004.p";
     ps.load_file(file);
     ps.normalize();
     ps.solve(file);
