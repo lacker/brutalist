@@ -77,7 +77,7 @@ impl ProblemSet {
 
             let last = file.split('/').rev().next().unwrap_or("???");
             println!(
-                "{:>11} - {}: active = {}, passive = {}",
+                "{:>14} - {}: active = {}, passive = {}",
                 last, comment, active, passive
             );
         }
