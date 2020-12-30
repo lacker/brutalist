@@ -26,29 +26,39 @@ pub struct Prover {
 }
 
 impl Prover {
-    pub fn new() -> Prover {
-        Prover {
+    pub fn new(clauses: Vec<Clause>) -> Prover {
+        let mut p = Prover {
             active: Vec::new(),
             passive: BinaryHeap::new(),
             seen: HashSet::new(),
             verbose: env::var("DEBUG").is_ok(),
+        };
+        for mut c in clauses.into_iter() {
+            c.normalize();
+            p.insert_passive(c);
         }
+        p
     }
 
-    // Should already be normalized when we insert
-    // Filter out duplicates and tautologies
-    pub fn insert_passive(&mut self, c: Clause) {
+    // Should already be normalized when we insert.
+    // Filter out duplicates and tautologies.
+    // Returns whether this passive clause immediately finishes the proof
+    fn insert_passive(&mut self, c: Clause) -> bool {
+        if c.literals.is_empty() {
+            return true;
+        }
         if c.is_tautology() {
-            return;
+            return false;
         }
         if self.seen.contains(&c) {
-            return;
+            return false;
         }
         self.seen.insert(c.clone());
         self.passive.push(Reverse(c));
+        false
     }
 
-    pub fn insert_active(&mut self, c: Clause) {
+    fn insert_active(&mut self, c: Clause) {
         self.active.push(c);
     }
 
@@ -59,14 +69,16 @@ impl Prover {
                 return None;
             }
             if let Some(Reverse(c)) = self.passive.pop() {
-                if c.literals.len() == 0 {
+                if c.literals.is_empty() {
                     return Some(true);
                 }
                 debug!(self, "\ngiven: {}", c);
 
                 for new_clause in c.factor().into_iter() {
                     debug!(self, "\nfactoring:\n  {}\nreduces to:\n  {}", c, new_clause);
-                    self.insert_passive(new_clause);
+                    if self.insert_passive(new_clause) {
+                        return Some(true);
+                    }
                 }
 
                 let mut new_clauses = Vec::new();
@@ -80,7 +92,9 @@ impl Prover {
                     }
                 }
                 for new_clause in new_clauses {
-                    self.insert_passive(new_clause);
+                    if self.insert_passive(new_clause) {
+                        return Some(true);
+                    }
                 }
 
                 self.insert_active(c);
@@ -98,20 +112,22 @@ mod tests {
 
     #[test]
     fn test_prove() {
-        let mut p = Prover::new();
-        p.insert_passive(Clause::read("(f1 X1) (-(f2 X1))"));
-        p.insert_passive(Clause::read("(f2 k1) k2"));
-        p.insert_passive(Clause::read("(- (f1 X1)) (- (f2 X1))"));
-        p.insert_passive(Clause::read("(- k2)"));
+        let mut p = Prover::new(vec![
+            Clause::read("(f1 X1) (-(f2 X1))"),
+            Clause::read("(f2 k1) k2"),
+            Clause::read("(- (f1 X1)) (- (f2 X1))"),
+            Clause::read("(- k2)"),
+        ]);
         assert_matches!(p.prove(), Some(true));
     }
 
     #[test]
     fn test_cant_prove() {
-        let mut p = Prover::new();
-        p.insert_passive(Clause::read("(f1 X1) (-(f2 X1)) "));
-        p.insert_passive(Clause::read("(f2 k1) k2"));
-        p.insert_passive(Clause::read("(- (f1 X1)) (- (f2 X1))"));
+        let mut p = Prover::new(vec![
+            Clause::read("(f1 X1) (-(f2 X1)) "),
+            Clause::read("(f2 k1) k2"),
+            Clause::read("(- (f1 X1)) (- (f2 X1))"),
+        ]);
         assert_matches!(p.prove(), Some(false));
     }
 }

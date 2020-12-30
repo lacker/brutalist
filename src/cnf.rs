@@ -617,33 +617,36 @@ impl Clause {
         answer
     }
 
-    // Find all clauses that can be produced from these two via resolution.
+    // See if a clause can be produced from these two via resolution.
+    // Restricts resolution to the "selected" literals.
     // See "Selecting the Selection" page 4
-    pub fn resolve(&self, other: &Clause) -> Vec<Clause> {
+    pub fn resolve(&self, other: &Clause) -> Option<Clause> {
         // Shift the variable ids for the other clause so that they don't overlap
+        // It should be faster to only shift once, if it matters.
         let offset = self.next_variable_id();
         let shifted = other.increment_variable_ids(offset);
 
-        let mut answer = Vec::new();
-        for (i1, lit1) in self.literals.iter().enumerate() {
-            for (i2, lit2) in shifted.literals.iter().enumerate() {
-                let (t1, t2, aligned) = lit1.align(lit2);
-                if aligned {
-                    // Resolution works with oppositely-signed literals
-                    continue;
-                }
-                let mut sub = Substitution::new();
-                if !sub.unify_terms(t1, t2) {
-                    continue;
-                }
-                let part1 = self.subremove(&sub, i1);
-                let part2 = shifted.subremove(&sub, i2);
-                let mut new_clause = part1.combine(&part2);
-                new_clause.normalize();
-                answer.push(new_clause);
-            }
+        // See if we can resolve
+        let i1 = self.selection.expect("must normalize before resolving");
+        let i2 = shifted.selection.expect("must normalize before resolving");
+        let lit1 = &self.literals[i1];
+        let lit2 = &shifted.literals[i2];
+        let (t1, t2, aligned) = lit1.align(&lit2);
+        if aligned {
+            // Resolution works with oppositely-signed literals
+            return None;
         }
-        answer
+        let mut sub = Substitution::new();
+        if !sub.unify_terms(t1, t2) {
+            return None;
+        }
+
+        // Find the new clause
+        let part1 = self.subremove(&sub, i1);
+        let part2 = shifted.subremove(&sub, i2);
+        let mut new_clause = part1.combine(&part2);
+        new_clause.normalize();
+        Some(new_clause)
     }
 
     fn read_sexp(sexp: &Sexp) -> Clause {
@@ -722,14 +725,13 @@ mod tests {
 
     #[test]
     fn test_resolution() {
-        let c1 = Clause::read("(f1 X1) (-(f2 X1))");
-        let c2 = Clause::read("(f2 k1) k2");
-        let new_clauses = c1.resolve(&c2);
-        for c in &new_clauses {
-            println!("{}", c);
-        }
-        assert_eq!(new_clauses.len(), 1);
-        assert_eq!(new_clauses[0].to_string(), "k2 (f1 k1)");
+        let mut c1 = Clause::read("(f1 X1) (-(f2 X1))");
+        let mut c2 = Clause::read("(f2 k1) k2");
+        c1.normalize();
+        c2.normalize();
+        let new_clause = c1.resolve(&c2).unwrap();
+        println!("{}", new_clause);
+        assert_eq!(new_clause.to_string(), "k2 (f1 k1)");
     }
 
     #[test]

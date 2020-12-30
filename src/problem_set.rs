@@ -51,11 +51,8 @@ impl ProblemSet {
 
         for file in self.get_files(dir) {
             let clauses = self.get_clauses(file);
-            let mut prover = Prover::new();
+            let mut prover = Prover::new(clauses);
             prover.verbose = false;
-            for c in clauses {
-                prover.insert_passive(c);
-            }
             let comment = match prover.prove() {
                 Some(true) => {
                     proved += 1;
@@ -104,11 +101,7 @@ impl ProblemSet {
         for clause in &clauses {
             println!("  {}", clause);
         }
-        let mut prover = Prover::new();
-        prover.verbose = true;
-        for c in clauses {
-            prover.insert_passive(c);
-        }
+        let mut prover = Prover::new(clauses);
         match prover.prove() {
             Some(true) => println!("proof succeeded."),
             Some(false) => println!("search space exhausted."),
