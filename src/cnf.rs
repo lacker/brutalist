@@ -470,7 +470,7 @@ impl Substitution {
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct Clause {
     pub literals: Vec<Literal>,
-    pub selection: Option<u32>,
+    pub selection: Option<usize>,
 }
 
 impl Clause {
@@ -502,11 +502,24 @@ impl Clause {
         assert!(!self.literals.is_empty());
         for (i, lit) in self.literals.iter().enumerate().rev() {
             if !lit.is_positive() {
-                self.selection = Some(i as u32);
+                self.selection = Some(i);
                 return;
             }
         }
-        self.selection = Some(self.literals.len() as u32 - 1);
+        self.selection = Some(self.literals.len() - 1);
+    }
+
+    // The selected literal.
+    pub fn selected(&self) -> Result<&Literal, ()> {
+        match self.selection {
+            Some(i) => Ok(&self.literals[i]),
+            None => Err(()),
+        }
+    }
+
+    // The key of the selected literal.
+    pub fn key(&self) -> Result<Key, ()> {
+        Ok(self.selected()?.key())
     }
 
     pub fn weight(&self) -> u32 {
