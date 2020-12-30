@@ -79,7 +79,7 @@ impl ProblemSet {
         );
         let elapsed = now.elapsed().as_secs() as f32;
         println!(
-            "aps: {} cps: {}",
+            "aps: {:.3} cps: {:.3}",
             total_active as f32 / elapsed,
             total_clauses as f32 / elapsed
         );
