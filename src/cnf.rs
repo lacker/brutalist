@@ -586,12 +586,14 @@ impl Clause {
     }
 
     pub fn increment_variable_ids(&self, n: u32) -> Clause {
-        Clause::new(
-            self.literals
+        Clause {
+            literals: self
+                .literals
                 .iter()
                 .map(|lit| lit.increment_variable_ids(n))
                 .collect(),
-        )
+            selection: self.selection,
+        }
     }
 
     // Find all clauses that can be produced from this one via factoring.
