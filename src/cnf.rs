@@ -610,24 +610,17 @@ impl fmt::Display for Clause {
     }
 }
 
-// Clause comparison is by total weight first, then by number of literals, then lexicographical.
+// Clause comparison is lexicographical, comparing the largest literals first.
+// This relies on the clauses being normalized so that their literals are sorted.
 impl Ord for Clause {
     fn cmp(&self, other: &Self) -> Ordering {
-        let cmp1 = self.weight().cmp(&other.weight());
-        if cmp1 != Ordering::Equal {
-            return cmp1;
-        }
-        let cmp2 = self.literals.len().cmp(&other.literals.len());
-        if cmp2 != Ordering::Equal {
-            return cmp2;
-        }
-        for (lit1, lit2) in self.literals.iter().zip(other.literals.iter()) {
+        for (lit1, lit2) in self.literals.iter().rev().zip(other.literals.iter().rev()) {
             let subcmp = lit1.cmp(lit2);
             if subcmp != Ordering::Equal {
                 return subcmp;
             }
         }
-        Ordering::Equal
+        self.literals.len().cmp(&other.literals.len())
     }
 }
 
