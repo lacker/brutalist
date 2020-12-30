@@ -37,7 +37,7 @@ impl Prover {
 
     // Should already be normalized when we insert
     // Filter out duplicates and tautologies
-    pub fn insert(&mut self, c: Clause) {
+    pub fn insert_passive(&mut self, c: Clause) {
         if c.is_tautology() {
             return;
         }
@@ -46,6 +46,10 @@ impl Prover {
         }
         self.seen.insert(c.clone());
         self.passive.push(Reverse(c));
+    }
+
+    pub fn insert_active(&mut self, c: Clause) {
+        self.active.push(c);
     }
 
     pub fn prove(&mut self) -> Option<bool> {
@@ -62,7 +66,7 @@ impl Prover {
 
                 for new_clause in c.factor().into_iter() {
                     debug!(self, "\nfactoring:\n  {}\nreduces to:\n  {}", c, new_clause);
-                    self.insert(new_clause);
+                    self.insert_passive(new_clause);
                 }
 
                 let mut new_clauses = Vec::new();
@@ -76,10 +80,10 @@ impl Prover {
                     }
                 }
                 for new_clause in new_clauses {
-                    self.insert(new_clause);
+                    self.insert_passive(new_clause);
                 }
 
-                self.active.push(c);
+                self.insert_active(c);
             } else {
                 // We ran out of ways to continue the search
                 return Some(false);
@@ -95,19 +99,19 @@ mod tests {
     #[test]
     fn test_prove() {
         let mut p = Prover::new();
-        p.insert(Clause::read("(f1 X1) (-(f2 X1))"));
-        p.insert(Clause::read("(f2 k1) k2"));
-        p.insert(Clause::read("(- (f1 X1)) (- (f2 X1))"));
-        p.insert(Clause::read("(- k2)"));
+        p.insert_passive(Clause::read("(f1 X1) (-(f2 X1))"));
+        p.insert_passive(Clause::read("(f2 k1) k2"));
+        p.insert_passive(Clause::read("(- (f1 X1)) (- (f2 X1))"));
+        p.insert_passive(Clause::read("(- k2)"));
         assert_matches!(p.prove(), Some(true));
     }
 
     #[test]
     fn test_cant_prove() {
         let mut p = Prover::new();
-        p.insert(Clause::read("(f1 X1) (-(f2 X1)) "));
-        p.insert(Clause::read("(f2 k1) k2"));
-        p.insert(Clause::read("(- (f1 X1)) (- (f2 X1))"));
+        p.insert_passive(Clause::read("(f1 X1) (-(f2 X1)) "));
+        p.insert_passive(Clause::read("(f2 k1) k2"));
+        p.insert_passive(Clause::read("(- (f1 X1)) (- (f2 X1))"));
         assert_matches!(p.prove(), Some(false));
     }
 }

@@ -54,7 +54,7 @@ impl ProblemSet {
             let mut prover = Prover::new();
             prover.verbose = false;
             for c in clauses {
-                prover.insert(c);
+                prover.insert_passive(c);
             }
             let comment = match prover.prove() {
                 Some(true) => {
@@ -107,7 +107,7 @@ impl ProblemSet {
         let mut prover = Prover::new();
         prover.verbose = true;
         for c in clauses {
-            prover.insert(c);
+            prover.insert_passive(c);
         }
         match prover.prove() {
             Some(true) => println!("proof succeeded."),
