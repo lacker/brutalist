@@ -62,12 +62,8 @@ impl Prover {
         false
     }
 
-    fn insert_active(&mut self, c: Clause) {
-        self.active.push(c);
-    }
-
     pub fn num_active(&self) -> u32 {
-        self.active.len() as u32
+        self.seen.len() as u32 - self.num_passive()
     }
 
     pub fn num_passive(&self) -> u32 {
@@ -84,6 +80,8 @@ impl Prover {
                 if c.literals.is_empty() {
                     return Some(true);
                 }
+                // c is the "given" clause, which means we are moving it from passive
+                // to active.
                 debug!(self, "\ngiven: {}", c);
 
                 for new_clause in c.factor().into_iter() {
@@ -109,7 +107,7 @@ impl Prover {
                     }
                 }
 
-                self.insert_active(c);
+                self.active.push(c);
             } else {
                 // We ran out of ways to continue the search
                 return Some(false);
