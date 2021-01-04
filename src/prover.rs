@@ -1,6 +1,7 @@
 use crate::cnf::*;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
 use std::time::Instant;
@@ -12,8 +13,8 @@ macro_rules! debug {
 }
 
 pub struct Prover {
-    // Stores clauses in the order they were added to the active set
-    active: Vec<Clause>,
+    // For each key, stores clauses in the order they were added to the active set
+    active: HashMap<Key, Vec<Clause>>,
 
     // Use Reverse to get a min-heap because we want to keep selecting the minimum clause
     passive: BinaryHeap<Reverse<Clause>>,
@@ -28,7 +29,7 @@ pub struct Prover {
 impl Prover {
     pub fn new(clauses: Vec<Clause>) -> Prover {
         let mut p = Prover {
-            active: Vec::new(),
+            active: HashMap::new(),
             passive: BinaryHeap::new(),
             seen: HashSet::new(),
             verbose: env::var("DEBUG").is_ok(),
@@ -91,23 +92,40 @@ impl Prover {
                     }
                 }
 
+                // Find all active clauses that can resolve against c
+                let key = c.key().expect("given clause should have key");
                 let mut new_clauses = Vec::new();
-                for clause in &self.active {
-                    for new_clause in c.resolve(&clause) {
-                        debug!(
-                            self,
-                            "\nresolution:\n  {}\n  {}\nresolve into:\n  {}", c, clause, new_clause
-                        );
-                        new_clauses.push(new_clause);
+                let clauses = self.active.get(&key.negate());
+                match clauses {
+                    Some(clauses) => {
+                        for clause in clauses {
+                            for new_clause in c.resolve(&clause) {
+                                debug!(
+                                    self,
+                                    "\nresolution:\n  {}\n  {}\nresolve into:\n  {}",
+                                    c,
+                                    clause,
+                                    new_clause
+                                );
+                                new_clauses.push(new_clause);
+                            }
+                        }
                     }
-                }
+                    None => (),
+                };
                 for new_clause in new_clauses {
                     if self.insert_passive(new_clause) {
                         return Some(true);
                     }
                 }
 
-                self.active.push(c);
+                // Move c to active clauses
+                match self.active.get_mut(&key) {
+                    Some(v) => v.push(c),
+                    None => {
+                        self.active.insert(key, vec![c]);
+                    }
+                }
             } else {
                 // We ran out of ways to continue the search
                 return Some(false);
