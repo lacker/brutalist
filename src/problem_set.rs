@@ -66,8 +66,8 @@ impl ProblemSet {
             };
 
             total_problems += 1;
-            let active = prover.active.len() as u32;
-            let passive = prover.passive.len() as u32;
+            let active = prover.num_active();
+            let passive = prover.num_passive();
             total_active += active;
             total_clauses += active + passive;
 
@@ -106,8 +106,8 @@ impl ProblemSet {
             Some(false) => println!("search space exhausted."),
             None => println!("out of time."),
         }
-        println!("active  = {}", prover.active.len());
-        println!("passive = {}", prover.passive.len());
+        println!("active  = {}", prover.num_active());
+        println!("passive = {}", prover.num_passive());
     }
 
     fn get_files(&self, dir: &str) -> impl Iterator<Item = &String> {

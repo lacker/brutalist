@@ -13,13 +13,13 @@ macro_rules! debug {
 
 pub struct Prover {
     // Stores clauses in the order they were added to the active set
-    pub active: Vec<Clause>,
+    active: Vec<Clause>,
 
     // Use Reverse to get a min-heap because we want to keep selecting the minimum clause
-    pub passive: BinaryHeap<Reverse<Clause>>,
+    passive: BinaryHeap<Reverse<Clause>>,
 
     // All clauses that have ever been added to the prover
-    pub seen: HashSet<Clause>,
+    seen: HashSet<Clause>,
 
     // Whether to log a lot of stuff
     pub verbose: bool,
@@ -64,6 +64,14 @@ impl Prover {
 
     fn insert_active(&mut self, c: Clause) {
         self.active.push(c);
+    }
+
+    pub fn num_active(&self) -> u32 {
+        self.active.len() as u32
+    }
+
+    pub fn num_passive(&self) -> u32 {
+        self.passive.len() as u32
     }
 
     pub fn prove(&mut self) -> Option<bool> {
