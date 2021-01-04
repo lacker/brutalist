@@ -204,6 +204,16 @@ pub struct Key {
     pub id: u32,
 }
 
+impl Key {
+    pub fn negate(&self) -> Key {
+        Key {
+            is_positive: !self.is_positive,
+            is_constant: self.is_constant,
+            id: self.id,
+        }
+    }
+}
+
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub enum Literal {
     Positive(Term),
