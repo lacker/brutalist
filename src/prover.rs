@@ -24,6 +24,9 @@ pub struct Prover {
 
     // Whether to log a lot of stuff
     pub verbose: bool,
+
+    // Time limit in seconds
+    limit: u64,
 }
 
 impl Prover {
@@ -33,6 +36,10 @@ impl Prover {
             passive: BinaryHeap::new(),
             seen: HashSet::new(),
             verbose: env::var("DEBUG").is_ok(),
+            limit: env::var("LIMIT")
+                .unwrap_or("".to_string())
+                .parse()
+                .unwrap_or(10),
         };
         for mut c in clauses.into_iter() {
             c.normalize();
@@ -74,7 +81,7 @@ impl Prover {
     pub fn prove(&mut self) -> Option<bool> {
         let now = Instant::now();
         loop {
-            if now.elapsed().as_secs() > 10 {
+            if now.elapsed().as_secs() > self.limit {
                 return None;
             }
             if let Some(Reverse(c)) = self.passive.pop() {
