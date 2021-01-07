@@ -1,4 +1,4 @@
 /target
 *~
-flamegraph.svg
+flame*.svg
 perf.data*

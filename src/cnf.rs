@@ -70,6 +70,7 @@ impl Term {
         }
     }
 
+    // Substitutes one variable.
     pub fn sub_one(&self, v: u32, term: &Term) -> Term {
         match self {
             Term::Constant(_) => self.clone(),
@@ -389,13 +390,13 @@ impl Substitution {
             return false;
         }
 
-        // We need to expand all mentions of var in the old substitution mapping.
-        let mut new_map = HashMap::new();
-        for (v, old_term) in &self.map {
-            new_map.insert(*v, old_term.sub_one(var, &term));
+        // We need to expand all instances of var with term, in the substitution mapping.
+        for (_, old_term) in self.map.iter_mut() {
+            if old_term.contains_variable(var) {
+                *old_term = old_term.sub_one(var, &term);
+            }
         }
-        new_map.insert(var, term);
-        self.map = new_map;
+        self.map.insert(var, term);
         return true;
     }
 
@@ -588,7 +589,7 @@ impl Clause {
         self.literals.is_empty()
     }
 
-    pub fn is_tautology(&self) -> bool {
+    pub fn is_tautology_old(&self) -> bool {
         let mut positives = HashSet::new();
         for literal in &self.literals {
             if literal.is_positive() {
@@ -601,6 +602,23 @@ impl Clause {
             }
         }
         return false;
+    }
+
+    pub fn is_tautology(&self) -> bool {
+        for pos in &self.literals {
+            if !pos.is_positive() {
+                continue;
+            }
+            for neg in &self.literals {
+                if neg.is_positive() {
+                    continue;
+                }
+                if pos.term() == neg.term() {
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     // Returns one more than the maximum variable id in this expression, or zero if
