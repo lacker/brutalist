@@ -659,18 +659,14 @@ impl Clause {
 
     // See if a clause can be produced from these two via resolution.
     // Restricts resolution to the "selected" literals.
+    // NOTE: the variable ids for this clause should *already* be offset.
     // See "Selecting the Selection" page 4
     pub fn resolve(&self, other: &Clause) -> Option<Clause> {
-        // Shift the variable ids for the other clause so that they don't overlap
-        // It should be faster to only shift once, if it matters.
-        let offset = self.next_variable_id();
-        let shifted = other.increment_variable_ids(offset);
-
         // See if we can resolve
         let i1 = self.selection.expect("must normalize before resolving");
-        let i2 = shifted.selection.expect("must normalize before resolving");
+        let i2 = other.selection.expect("must normalize before resolving");
         let lit1 = &self.literals[i1];
-        let lit2 = &shifted.literals[i2];
+        let lit2 = &other.literals[i2];
         let (t1, t2, aligned) = lit1.align(&lit2);
         if aligned {
             // Resolution works with oppositely-signed literals
@@ -683,7 +679,7 @@ impl Clause {
 
         // Find the new clause
         let part1 = self.subremove(&sub, i1);
-        let part2 = shifted.subremove(&sub, i2);
+        let part2 = other.subremove(&sub, i2);
         let mut new_clause = part1.combine(&part2);
         new_clause.normalize();
         Some(new_clause)

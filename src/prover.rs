@@ -100,13 +100,16 @@ impl Prover {
                 }
 
                 // Find all active clauses that can resolve against c
+                // Variable-shift our clause once. Half of u32 max should be enough
+                // that the variable ids don't overlap.
+                let shifted = c.increment_variable_ids(u32::MAX / 2);
                 let key = c.key().expect("given clause should have key");
                 let mut new_clauses = Vec::new();
                 let clauses = self.active.get(&key.negate());
                 match clauses {
                     Some(clauses) => {
                         for clause in clauses {
-                            for new_clause in c.resolve(&clause) {
+                            for new_clause in shifted.resolve(&clause) {
                                 debug!(
                                     self,
                                     "\nresolution:\n  {}\n  {}\nresolve into:\n  {}",
