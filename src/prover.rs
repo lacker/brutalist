@@ -48,6 +48,17 @@ impl Prover {
         p
     }
 
+    // Returns whether has_been_seen has seen this clause before.
+    // Call this before inserting clauses actively.
+    fn has_been_seen(&mut self, c: &Clause) -> bool {
+        if self.seen.contains(c) {
+            true
+        } else {
+            self.seen.insert(c.clone());
+            false
+        }
+    }
+
     // Should already be normalized when we insert.
     // Filter out duplicates, tautologies, and excessively deep terms.
     // Returns whether this passive clause immediately finishes the proof
@@ -62,12 +73,21 @@ impl Prover {
         if c.is_tautology() {
             return false;
         }
-        if self.seen.contains(&c) {
-            return false;
+        if !self.has_been_seen(&c) {
+            self.passive.push(Reverse(c));
         }
-        self.seen.insert(c.clone());
-        self.passive.push(Reverse(c));
         false
+    }
+
+    // Adds a clause to the active set.
+    fn insert_active(&mut self, c: Clause) {
+        let key = c.key().expect("active clause should have a key");
+        match self.active.get_mut(&key) {
+            Some(v) => v.push(c),
+            None => {
+                self.active.insert(key, vec![c]);
+            }
+        }
     }
 
     pub fn num_active(&self) -> u32 {
@@ -130,12 +150,7 @@ impl Prover {
                 }
 
                 // Move c to active clauses
-                match self.active.get_mut(&key) {
-                    Some(v) => v.push(c),
-                    None => {
-                        self.active.insert(key, vec![c]);
-                    }
-                }
+                self.insert_active(c);
             } else {
                 // We ran out of ways to continue the search
                 return Some(false);
