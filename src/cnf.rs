@@ -553,6 +553,13 @@ impl Clause {
         }
     }
 
+    pub fn is_selected(&self, i: usize) -> bool {
+        match self.selection {
+            Some(j) => i == j,
+            None => false,
+        }
+    }
+
     // The key of the selected literal.
     pub fn key(&self) -> Result<Key, ()> {
         Ok(self.selected()?.key())
@@ -718,11 +725,16 @@ impl Clause {
 
 impl fmt::Display for Clause {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let parts = self
-            .literals
-            .iter()
-            .map(|lit| lit.to_string())
-            .collect::<Vec<_>>();
+        let mut parts = Vec::new();
+        for (i, lit) in self.literals.iter().enumerate() {
+            if self.is_selected(i) {
+                let s = lit.to_string();
+                let guts = &s[1..(s.len() - 1)];
+                parts.push(format!("[{}]", guts));
+            } else {
+                parts.push(lit.to_string());
+            }
+        }
         write!(f, "{}", parts.join(" "))
     }
 }
