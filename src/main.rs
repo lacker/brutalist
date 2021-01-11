@@ -9,6 +9,7 @@ mod cnf;
 mod fol;
 mod legend;
 mod loader;
+mod passive_set;
 mod problem_set;
 mod prover;
 mod sexp;

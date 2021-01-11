@@ -1,6 +1,5 @@
 use crate::cnf::*;
-use std::cmp::Reverse;
-use std::collections::BinaryHeap;
+use crate::passive_set::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
@@ -16,8 +15,7 @@ pub struct Prover {
     // For each key, stores clauses in the order they were added to the active set
     active: HashMap<Key, Vec<Clause>>,
 
-    // Use Reverse to get a min-heap because we want to keep selecting the minimum clause
-    passive: BinaryHeap<Reverse<Clause>>,
+    passive: PassiveSet,
 
     // All clauses that have ever been added to the prover
     seen: HashSet<Clause>,
@@ -33,7 +31,7 @@ impl Prover {
     pub fn new(clauses: Vec<Clause>) -> Prover {
         let mut p = Prover {
             active: HashMap::new(),
-            passive: BinaryHeap::new(),
+            passive: PassiveSet::new(),
             seen: HashSet::new(),
             verbose: env::var("DEBUG").is_ok(),
             limit: env::var("LIMIT")
@@ -43,7 +41,7 @@ impl Prover {
         };
         for mut c in clauses.into_iter() {
             c.normalize();
-            p.insert_passive(c);
+            p.passive.insert_priority(c);
         }
         p
     }
@@ -74,20 +72,9 @@ impl Prover {
             return false;
         }
         if !self.has_been_seen(&c) {
-            self.passive.push(Reverse(c));
+            self.passive.insert(c);
         }
         false
-    }
-
-    // Adds a clause to the active set.
-    fn insert_active(&mut self, c: Clause) {
-        let key = c.key().expect("active clause should have a key");
-        match self.active.get_mut(&key) {
-            Some(v) => v.push(c),
-            None => {
-                self.active.insert(key, vec![c]);
-            }
-        }
     }
 
     pub fn num_active(&self) -> u32 {
@@ -104,7 +91,7 @@ impl Prover {
             if now.elapsed().as_secs() > self.limit {
                 return None;
             }
-            if let Some(Reverse(c)) = self.passive.pop() {
+            if let Some(c) = self.passive.pop() {
                 if c.literals.is_empty() {
                     return Some(true);
                 }
@@ -150,7 +137,12 @@ impl Prover {
                 }
 
                 // Move c to active clauses
-                self.insert_active(c);
+                match self.active.get_mut(&key) {
+                    Some(v) => v.push(c),
+                    None => {
+                        self.active.insert(key, vec![c]);
+                    }
+                }
             } else {
                 // We ran out of ways to continue the search
                 return Some(false);
