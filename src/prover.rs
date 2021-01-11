@@ -65,7 +65,10 @@ impl Prover {
             return true;
         }
         if c.height() > 100 {
-            // Theoretically unsound but prevents stack overflows
+            // Theoretically unsound but prevents stack overflows.
+            // This means we can (and do) exhaust on problems whose solutions involve
+            // exponentially-deep formulas.
+            debug!(self, "\ndropping as too high: {}", c);
             return false;
         }
         if c.is_tautology() {
