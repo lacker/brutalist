@@ -529,20 +529,28 @@ impl Clause {
                 }
 
                 // Pick the largest negative clause if there are any
-                for (i, lit) in self.literals.iter().enumerate().rev() {
-                    if !lit.is_positive() {
-                        self.selection = Some(i);
-                        return;
-                    }
-                }
-
                 // Fall back to the largest positive clause
-                self.selection = Some(self.literals.len() - 1);
+                if !self.select(false) {
+                    // TODO: can I assert here?
+                    self.select(true);
+                }
                 return;
             }
 
             self.literals = self.literals.iter().map(|lit| lit.sub(&sub)).collect();
         }
+    }
+
+    // Select the largest clause of the given sign.
+    // Returns whether there was a selection.
+    pub fn select(&mut self, positive: bool) -> bool {
+        for (i, lit) in self.literals.iter().enumerate().rev() {
+            if lit.is_positive() == positive {
+                self.selection = Some(i);
+                return true;
+            }
+        }
+        return false;
     }
 
     // The selected literal.
@@ -786,7 +794,7 @@ mod tests {
         let new_clauses = clause.factor();
         assert_eq!(new_clauses.len(), 1);
         // Should get normalized
-        assert_eq!(new_clauses[0].to_string(), "(f1 X0)");
+        assert_eq!(new_clauses[0].to_string(), "[f1 X0]");
     }
 
     #[test]
@@ -797,7 +805,7 @@ mod tests {
         c2.normalize();
         let new_clause = c1.resolve(&c2).unwrap();
         println!("{}", new_clause);
-        assert_eq!(new_clause.to_string(), "k2 (f1 k1)");
+        assert_eq!(new_clause.to_string(), "k2 [f1 k1]");
     }
 
     #[test]
@@ -806,7 +814,7 @@ mod tests {
         c.normalize();
         assert_eq!(
             c.to_string(),
-            "(f0 X0) (- (f0 X1)) (- (f0 (f1 X1 (f1 X2 X0))))"
+            "(f0 X0) (- (f0 X1)) [- (f0 (f1 X1 (f1 X2 X0)))]"
         );
     }
 
