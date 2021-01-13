@@ -1,0 +1,20 @@
+include('Axioms/LCL006+1.ax').
+include('Axioms/LCL007+0.ax').
+include('Axioms/LCL007+1.ax').
+include('Axioms/LCL007+4.ax').
+include('Axioms/LCL007+6.ax').
+fof(km5_axiom_5,conjecture,(
+    axiom_5 )).
+
+fof(hilbert_op_equiv,axiom,(
+    op_equiv )).
+
+fof(hilbert_op_or,axiom,(
+    op_or )).
+
+fof(substitution_of_equivalents,axiom,(
+    substitution_of_equivalents )).
+
+fof(hilbert_op_implies_and,axiom,(
+    op_implies_and )).
+

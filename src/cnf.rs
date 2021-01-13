@@ -531,7 +531,6 @@ impl Clause {
                 // Pick the largest negative clause if there are any
                 // Fall back to the largest positive clause
                 if !self.select(false) {
-                    // TODO: can I assert here?
                     self.select(true);
                 }
                 return;
