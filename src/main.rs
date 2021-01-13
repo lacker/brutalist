@@ -24,9 +24,19 @@ fn suite() {
     ps.suite("FNN");
 }
 
+fn load() {
+    let mut ps = ProblemSet::new();
+    ps.load_dir("FEQ");
+}
+
 fn main() -> () {
     if env::var("SUITE").is_ok() {
         suite();
+        return;
+    }
+
+    if env::var("LOAD").is_ok() {
+        load();
         return;
     }
 
