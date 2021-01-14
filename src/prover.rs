@@ -109,6 +109,7 @@ impl Prover {
                     }
                 }
 
+                // TODO: make this logic possible via ActiveSet, then port
                 // Find all active clauses that can resolve against c
                 // Variable-shift our clause once. Half of u32 max should be enough
                 // that the variable ids don't overlap.
