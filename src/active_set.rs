@@ -34,4 +34,20 @@ impl ActiveSet {
             None => self.resolvers.insert(key, vec![resolver]),
         }
     }
+
+    // Generate clauses by resolution, matching the provided clause
+    // against clauses in the active set.
+    // The provided clause should already be variable-shifted.
+    pub fn resolve(&self, key: Key, shifted: Clause, selection: usize) -> Vec<Clause> {
+        let mut new_clauses = Vec::new();
+        let clauses = self.resolvers.get(&key.negate());
+        match clauses {
+            Some(clauses) => {
+                for clause in clauses {
+                    for new_clause in shifted.XXX
+                }
+            }
+            None => (),
+        }
+    }
 }

@@ -689,32 +689,11 @@ impl Clause {
         answer
     }
 
-    // See if a clause can be produced from these two via resolution.
-    // Restricts resolution to the "selected" literals.
-    // NOTE: the variable ids for this clause should *already* be offset.
-    // See "Selecting the Selection" page 4
     pub fn resolve(&self, other: &Clause) -> Option<Clause> {
         // See if we can resolve
         let i1 = self.selection.expect("must normalize before resolving");
         let i2 = other.selection.expect("must normalize before resolving");
-        let lit1 = &self.literals[i1];
-        let lit2 = &other.literals[i2];
-        let (t1, t2, aligned) = lit1.align(&lit2);
-        if aligned {
-            // Resolution works with oppositely-signed literals
-            return None;
-        }
-        let mut sub = Substitution::new();
-        if !sub.unify_terms(t1, t2) {
-            return None;
-        }
-
-        // Find the new clause
-        let part1 = self.subremove(&sub, i1);
-        let part2 = other.subremove(&sub, i2);
-        let mut new_clause = part1.combine(&part2);
-        new_clause.normalize();
-        Some(new_clause)
+        resolve(self, i1, other, i2)
     }
 
     fn read_sexp(sexp: &Sexp) -> Clause {
@@ -744,6 +723,31 @@ impl fmt::Display for Clause {
         }
         write!(f, "{}", parts.join(" "))
     }
+}
+
+// See if a clause can be produced from these two via resolution.
+// Restricts resolution to the "selected" literals.
+// NOTE: the variable ids for this clause should *already* be offset.
+// See "Selecting the Selection" page 4
+pub fn resolve(clause1: &Clause, i1: usize, clause2: &Clause, i2: usize) -> Option<Clause> {
+    let lit1 = &clause1.literals[i1];
+    let lit2 = &clause2.literals[i2];
+    let (t1, t2, aligned) = lit1.align(&lit2);
+    if aligned {
+        // Resolution works with oppositely-signed literals
+        return None;
+    }
+    let mut sub = Substitution::new();
+    if !sub.unify_terms(t1, t2) {
+        return None;
+    }
+
+    // Find the new clause
+    let part1 = clause1.subremove(&sub, i1);
+    let part2 = clause2.subremove(&sub, i2);
+    let mut new_clause = part1.combine(&part2);
+    new_clause.normalize();
+    Some(new_clause)
 }
 
 // Clause comparison is lexicographical, comparing the largest literals first.
