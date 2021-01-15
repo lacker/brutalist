@@ -540,6 +540,19 @@ impl Clause {
         }
     }
 
+    // Picks the largest negative clause if there are any.
+    // Otherwise, picks the largest positive clause.
+    // Panics on empty clauses.
+    pub fn default_selection(&self) -> (usize, Key) {
+        for (i, lit) in self.literals.iter().enumerate().rev() {
+            if !lit.is_positive() {
+                return (i, lit.key());
+            }
+        }
+        let i = self.literals.len() - 1;
+        return (i, self.literals[i].key());
+    }
+
     // Select the largest clause of the given sign.
     // Returns whether there was a selection.
     pub fn select(&mut self, positive: bool) -> bool {
@@ -689,13 +702,6 @@ impl Clause {
         answer
     }
 
-    pub fn resolve(&self, other: &Clause) -> Option<Clause> {
-        // See if we can resolve
-        let i1 = self.selection.expect("must normalize before resolving");
-        let i2 = other.selection.expect("must normalize before resolving");
-        resolve(self, i1, other, i2)
-    }
-
     fn read_sexp(sexp: &Sexp) -> Clause {
         match sexp {
             Sexp::Atom(_) => Clause::new(vec![Literal::read_sexp(sexp)]),
@@ -806,7 +812,7 @@ mod tests {
         let mut c2 = Clause::read("(f2 k1) k2");
         c1.normalize();
         c2.normalize();
-        let new_clause = c1.resolve(&c2).unwrap();
+        let new_clause = resolve(&c1, 1, &c2, 1).unwrap();
         println!("{}", new_clause);
         assert_eq!(new_clause.to_string(), "k2 [f1 k1]");
     }
