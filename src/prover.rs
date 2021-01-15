@@ -111,8 +111,7 @@ impl Prover {
                 // Variable-shift our clause once. Half of u32 max should be enough
                 // that the variable ids don't overlap.
                 let shifted = c.increment_variable_ids(u32::MAX / 2);
-                let key = c.key().expect("given clause should have key");
-                let selection = c.selection.expect("given clause should have selection");
+                let (selection, key) = c.default_selection();
                 let new_clauses = self.active.resolve(&key, &shifted, selection);
                 for new_clause in new_clauses {
                     if self.insert_passive(new_clause) {

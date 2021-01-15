@@ -503,36 +503,21 @@ impl fmt::Display for Substitution {
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct Clause {
     pub literals: Vec<Literal>,
-    pub selection: Option<usize>,
 }
 
 impl Clause {
     // Creates a new clause with no literals selected.
     pub fn new(literals: Vec<Literal>) -> Clause {
-        Clause {
-            literals,
-            selection: None,
-        }
+        Clause { literals }
     }
 
     // Sorts the literals and makes a heuristic attempt to normalize variable numbering.
-    // If there are any clauses, heuristically picks one as the "selected" clause.
     pub fn normalize(&mut self) {
         loop {
             self.literals.sort();
             self.literals.dedup();
             let mut sub = Substitution::new();
             if !sub.normalize_clause_variables(&self) {
-                // Literal normalization is complete. Now we can pick the selected clause.
-                if self.literals.is_empty() {
-                    return;
-                }
-
-                // Pick the largest negative clause if there are any
-                // Fall back to the largest positive clause
-                if !self.select(false) {
-                    self.select(true);
-                }
                 return;
             }
 
@@ -551,38 +536,6 @@ impl Clause {
         }
         let i = self.literals.len() - 1;
         return (i, self.literals[i].key());
-    }
-
-    // Select the largest clause of the given sign.
-    // Returns whether there was a selection.
-    pub fn select(&mut self, positive: bool) -> bool {
-        for (i, lit) in self.literals.iter().enumerate().rev() {
-            if lit.is_positive() == positive {
-                self.selection = Some(i);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // The selected literal.
-    pub fn selected(&self) -> Result<&Literal, ()> {
-        match self.selection {
-            Some(i) => Ok(&self.literals[i]),
-            None => Err(()),
-        }
-    }
-
-    pub fn is_selected(&self, i: usize) -> bool {
-        match self.selection {
-            Some(j) => i == j,
-            None => false,
-        }
-    }
-
-    // The key of the selected literal.
-    pub fn key(&self) -> Result<Key, ()> {
-        Ok(self.selected()?.key())
     }
 
     pub fn weight(&self) -> u32 {
@@ -677,7 +630,6 @@ impl Clause {
                 .iter()
                 .map(|lit| lit.increment_variable_ids(n))
                 .collect(),
-            selection: self.selection,
         }
     }
 
@@ -717,17 +669,15 @@ impl Clause {
 
 impl fmt::Display for Clause {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut parts = Vec::new();
-        for (i, lit) in self.literals.iter().enumerate() {
-            if self.is_selected(i) {
-                let s = lit.to_string();
-                let guts = &s[1..(s.len() - 1)];
-                parts.push(format!("[{}]", guts));
-            } else {
-                parts.push(lit.to_string());
-            }
-        }
-        write!(f, "{}", parts.join(" "))
+        write!(
+            f,
+            "{}",
+            self.literals
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
     }
 }
 
@@ -803,7 +753,7 @@ mod tests {
         let new_clauses = clause.factor();
         assert_eq!(new_clauses.len(), 1);
         // Should get normalized
-        assert_eq!(new_clauses[0].to_string(), "[f1 X0]");
+        assert_eq!(new_clauses[0].to_string(), "(f1 X0)");
     }
 
     #[test]
@@ -814,7 +764,7 @@ mod tests {
         c2.normalize();
         let new_clause = resolve(&c1, 1, &c2, 1).unwrap();
         println!("{}", new_clause);
-        assert_eq!(new_clause.to_string(), "k2 [f1 k1]");
+        assert_eq!(new_clause.to_string(), "k2 (f1 k1)");
     }
 
     #[test]
@@ -823,7 +773,7 @@ mod tests {
         c.normalize();
         assert_eq!(
             c.to_string(),
-            "(f0 X0) (- (f0 X1)) [- (f0 (f1 X1 (f1 X2 X0)))]"
+            "(f0 X0) (- (f0 X1)) (- (f0 (f1 X1 (f1 X2 X0))))"
         );
     }
 
