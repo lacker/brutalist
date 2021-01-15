@@ -5,6 +5,7 @@ extern crate assert_matches;
 use crate::problem_set::*;
 use std::env;
 
+mod active_set;
 mod cnf;
 mod fol;
 mod legend;

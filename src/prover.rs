@@ -1,6 +1,6 @@
+use crate::active_set::*;
 use crate::cnf::*;
 use crate::passive_set::*;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
 use std::time::Instant;
@@ -12,9 +12,7 @@ macro_rules! debug {
 }
 
 pub struct Prover {
-    // For each key, stores clauses in the order they were added to the active set
-    active: HashMap<Key, Vec<Clause>>,
-
+    active: ActiveSet,
     passive: PassiveSet,
 
     // All clauses that have ever been added to the prover
@@ -30,7 +28,7 @@ pub struct Prover {
 impl Prover {
     pub fn new(clauses: Vec<Clause>) -> Prover {
         let mut p = Prover {
-            active: HashMap::new(),
+            active: ActiveSet::new(),
             passive: PassiveSet::new(),
             seen: HashSet::new(),
             verbose: env::var("DEBUG").is_ok(),
@@ -109,44 +107,20 @@ impl Prover {
                     }
                 }
 
-                // TODO: make this logic possible via ActiveSet, then port
                 // Find all active clauses that can resolve against c
                 // Variable-shift our clause once. Half of u32 max should be enough
                 // that the variable ids don't overlap.
                 let shifted = c.increment_variable_ids(u32::MAX / 2);
                 let key = c.key().expect("given clause should have key");
-                let mut new_clauses = Vec::new();
-                let clauses = self.active.get(&key.negate());
-                match clauses {
-                    Some(clauses) => {
-                        for clause in clauses {
-                            for new_clause in shifted.resolve(&clause) {
-                                debug!(
-                                    self,
-                                    "\nresolution:\n  {}\n  {}\nresolve into:\n  {}",
-                                    c,
-                                    clause,
-                                    new_clause
-                                );
-                                new_clauses.push(new_clause);
-                            }
-                        }
-                    }
-                    None => (),
-                };
+                let selection = c.selection.expect("given clause should have selection");
+                let new_clauses = self.active.resolve(&key, &shifted, selection);
                 for new_clause in new_clauses {
                     if self.insert_passive(new_clause) {
                         return Some(true);
                     }
                 }
 
-                // Move c to active clauses
-                match self.active.get_mut(&key) {
-                    Some(v) => v.push(c),
-                    None => {
-                        self.active.insert(key, vec![c]);
-                    }
-                }
+                self.active.insert(key, c, selection);
             } else {
                 // We ran out of ways to continue the search
                 return Some(false);

@@ -8,12 +8,6 @@ pub struct Resolver {
     selection: usize,
 }
 
-impl Resolver {
-    fn literal(&self) -> Literal {
-        self.clause.literals[selection]
-    }
-}
-
 // An ActiveSet stores a set of clauses in a way that makes it easy to
 // resolve new clauses against the set.
 pub struct ActiveSet {
@@ -29,21 +23,22 @@ impl ActiveSet {
 
     pub fn insert(&mut self, key: Key, clause: Clause, selection: usize) {
         let resolver = Resolver { selection, clause };
-        match self.resolvers.get_mut(&key) {
-            Some(v) => v.push(resolver),
-            None => self.resolvers.insert(key, vec![resolver]),
+        if let Some(v) = self.resolvers.get_mut(&key) {
+            v.push(resolver);
+        } else {
+            self.resolvers.insert(key, vec![resolver]);
         }
     }
 
     // Generate clauses by resolution, matching the provided clause
     // against clauses in the active set.
     // The provided clause should already be variable-shifted.
-    pub fn resolve(&self, key: Key, shifted: Clause, selection: usize) -> Vec<Clause> {
+    pub fn resolve(&self, key: &Key, shifted: &Clause, selection: usize) -> Vec<Clause> {
         let mut new_clauses = Vec::new();
         if let Some(resolvers) = self.resolvers.get(&key.negate()) {
             for resolver in resolvers {
                 if let Some(new_clause) =
-                    resolve(shifted, selection, resolver.clause, resolver.selection)
+                    resolve(shifted, selection, &resolver.clause, resolver.selection)
                 {
                     new_clauses.push(new_clause);
                 }
