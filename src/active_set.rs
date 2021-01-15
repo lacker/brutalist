@@ -40,14 +40,15 @@ impl ActiveSet {
     // The provided clause should already be variable-shifted.
     pub fn resolve(&self, key: Key, shifted: Clause, selection: usize) -> Vec<Clause> {
         let mut new_clauses = Vec::new();
-        let clauses = self.resolvers.get(&key.negate());
-        match clauses {
-            Some(clauses) => {
-                for clause in clauses {
-                    for new_clause in shifted.XXX
+        if let Some(resolvers) = self.resolvers.get(&key.negate()) {
+            for resolver in resolvers {
+                if let Some(new_clause) =
+                    resolve(shifted, selection, resolver.clause, resolver.selection)
+                {
+                    new_clauses.push(new_clause);
                 }
             }
-            None => (),
         }
+        new_clauses
     }
 }
