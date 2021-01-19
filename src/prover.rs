@@ -21,6 +21,9 @@ pub struct Prover {
     // Whether to log a lot of stuff
     pub verbose: bool,
 
+    // Whether we are running an experiment
+    pub experiment: bool,
+
     // Time limit in seconds
     limit: u64,
 }
@@ -32,6 +35,7 @@ impl Prover {
             passive: PassiveSet::new(),
             seen: HashSet::new(),
             verbose: env::var("DEBUG").is_ok(),
+            experiment: env::var("EXPERIMENT").is_ok(),
             limit: env::var("LIMIT")
                 .unwrap_or("".to_string())
                 .parse()
@@ -100,6 +104,7 @@ impl Prover {
                 // to active.
                 debug!(self, "\ngiven: {}", c);
 
+                // Factoring.
                 for new_clause in c.factor().into_iter() {
                     debug!(self, "\nfactoring:\n  {}\nreduces to:\n  {}", c, new_clause);
                     if self.insert_passive(new_clause) {
@@ -107,18 +112,35 @@ impl Prover {
                     }
                 }
 
-                // Find all active clauses that can resolve against c
+                // Resolution.
                 // Variable-shift our clause once. Half of u32 max should be enough
                 // that the variable ids don't overlap.
                 let shifted = c.increment_variable_ids(u32::MAX / 2);
-                let (selection, key) = c.default_selection();
-                let new_clauses = self.active.resolve(&key, &shifted, selection);
+
+                let (selection, key, new_clauses) = if self.experiment {
+                    c.literals
+                        .iter()
+                        .enumerate()
+                        .map(|(i, lit)| {
+                            let key = lit.key();
+                            let new_clauses = self.active.resolve(&key, &shifted, i);
+                            (i, key, new_clauses)
+                        })
+                        .min_by_key(|(_, _, clauses)| clauses.len())
+                        .unwrap()
+                } else {
+                    // Just using the default selection
+                    let (selection, key) = c.default_selection();
+                    let new_clauses = self.active.resolve(&key, &shifted, selection);
+                    (selection, key, new_clauses)
+                };
+
+                // Add new clauses
                 for new_clause in new_clauses {
                     if self.insert_passive(new_clause) {
                         return Some(true);
                     }
                 }
-
                 self.active.insert(key, c, selection);
             } else {
                 // We ran out of ways to continue the search
