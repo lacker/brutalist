@@ -117,10 +117,11 @@ impl Prover {
                 // that the variable ids don't overlap.
                 let shifted = c.increment_variable_ids(u32::MAX / 2);
 
-                let (selection, key, new_clauses) = if self.experiment {
+                let (selection, key, new_clauses) = if self.experiment && c.has_negative() {
                     c.literals
                         .iter()
                         .enumerate()
+                        .filter(|(_, lit)| !lit.is_positive())
                         .map(|(i, lit)| {
                             let key = lit.key();
                             let new_clauses = self.active.resolve(&key, &shifted, i);

@@ -525,6 +525,10 @@ impl Clause {
         }
     }
 
+    pub fn has_negative(&self) -> bool {
+        self.literals.iter().any(|lit| !lit.is_positive())
+    }
+
     // Picks the largest negative clause if there are any.
     // Otherwise, picks the largest positive clause.
     // Panics on empty clauses.
